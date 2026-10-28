@@ -185,7 +185,10 @@ function renderHomework(){
  // Show one portrait for each person, followed by all their assignments.
  const grouped=new Map();
  for(const t of items){const person=t.person||'Ukendt';if(!grouped.has(person))grouped.set(person,[]);grouped.get(person).push(t)}
- // Earliest due assignment determines the order of person groups.\n const orderedGroups=[...grouped.entries()].sort((a,b)=>a[1][0].date.localeCompare(b[1][0].date));\n for(const [name,tasks] of orderedGroups){\n  tasks.sort((a,b)=>a.date.localeCompare(b.date));
+ // Earliest due assignment determines the order of person groups.
+ const orderedGroups=[...grouped.entries()].sort((a,b)=>a[1][0].date.localeCompare(b[1][0].date));
+ for(const [name,tasks] of orderedGroups){
+  tasks.sort((a,b)=>a.date.localeCompare(b.date));
   const group=node('div','hw-group');
   const portrait=node('div','hw-portrait');
   const p=people.find(p=>p.name===name);

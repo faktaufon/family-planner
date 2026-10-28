@@ -147,6 +147,17 @@ main{max-width:940px;padding:6px 8px 26px}
 #homework .item{align-items:center}
 #homework .label{line-height:1.45}
 #homeworkFields .field input[type="checkbox"]{display:inline-block;width:auto;margin-right:7px}
+/* v28: lektier samlet pr. person, foto til venstre og afkrydsning til højre */
+#homework .hw-group{display:grid;grid-template-columns:34px minmax(0,1fr);gap:6px;align-items:start;padding:8px 0;border-bottom:1px solid #c5c4b77a}
+#homework .hw-portrait{padding-top:3px}
+#homework .hw-portrait .avatar{width:31px;height:31px;border-width:2px;font-size:12px}
+#homework .hw-list{min-width:0}
+#homework .hw-task{display:flex;align-items:center;gap:4px;padding:4px 0;border-bottom:1px solid #ffffff9a;font:11px/1.35 Montserrat,system-ui,sans-serif}
+#homework .hw-task:last-child{border-bottom:0}
+#homework .hw-tasktext{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}
+#homework .hw-task input[type=checkbox]{flex:0 0 16px;width:16px;height:16px;margin:0;accent-color:#8ba78e}
+#homework .hw-task.done .hw-tasktext{opacity:.55;text-decoration:line-through}
+@media(max-width:390px){#homework .hw-group{grid-template-columns:29px minmax(0,1fr);gap:4px}#homework .hw-portrait .avatar{width:27px;height:27px}}
 </style></head><body><main><header class="mast"><span class="sprig left"><svg viewBox="0 0 210 110" aria-hidden="true"><path d="M2 102 Q66 14 203 7" fill="none" stroke="#8b8e74" stroke-width="2"/><g fill="#a6b6a1" stroke="#81967d" stroke-width="1"><ellipse cx="42" cy="67" rx="13" ry="29" transform="rotate(-42 42 67)"/><ellipse cx="68" cy="46" rx="12" ry="26" transform="rotate(27 68 46)"/><ellipse cx="98" cy="30" rx="12" ry="27" transform="rotate(-33 98 30)"/><ellipse cx="139" cy="14" rx="11" ry="24" transform="rotate(34 139 14)"/><ellipse cx="159" cy="34" rx="11" ry="24" transform="rotate(-48 159 34)"/></g></svg></span><span class="sprig right"><svg viewBox="0 0 210 110" aria-hidden="true"><path d="M2 102 Q66 14 203 7" fill="none" stroke="#8b8e74" stroke-width="2"/><g fill="#a6b6a1" stroke="#81967d" stroke-width="1"><ellipse cx="42" cy="67" rx="13" ry="29" transform="rotate(-42 42 67)"/><ellipse cx="68" cy="46" rx="12" ry="26" transform="rotate(27 68 46)"/><ellipse cx="98" cy="30" rx="12" ry="27" transform="rotate(-33 98 30)"/><ellipse cx="139" cy="14" rx="11" ry="24" transform="rotate(34 139 14)"/><ellipse cx="159" cy="34" rx="11" ry="24" transform="rotate(-48 159 34)"/></g></svg></span><h1>Vores Familie</h1><small>U G E P L A N</small></header><section class="paper"><div class="topline"><div class="weeknav"><button class="plain" id="prev" aria-label="Forrige uge">‹</button><button class="weekpick" id="weekpick">UGE 44 ▾</button><button class="plain" id="next" aria-label="Næste uge">›</button><input type="date" id="weekdate" aria-label="Vælg dato" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px"></div><span class="period" id="period"></span></div><div id="calendar"></div></section><div class="under" id="under"><section class="box"><h2><span class="headingicon">☷</span> Husk <span class="heart">♥</span></h2><div id="reminders"></div><button class="addline" id="addReminder">+ Husketing</button></section><section class="box"><h2><span class="headingicon">▤</span> Lektier <span class="heart">♥</span></h2><div id="homework"></div><button class="addline" id="addHomework">+ Opret lektie</button></section></div><div class="bottom"><button id="family" hidden>♡ Familien</button><button id="today">I dag</button><button id="settings">⚙ Indstillinger</button></div><details><summary class="hint">Sikkerhedskopi og gendannelse</summary><p class="hint">Aftaler, billeder, husketing og lektier gemmes kun i denne browser. Gem en sikkerhedskopi før ændringer.</p><button class="settingsbtn" id="export">Gem sikkerhedskopi</button><button class="settingsbtn" id="import">Gendan sikkerhedskopi</button><input type="file" id="backupfile" accept=".json,application/json" hidden></details></main>
 <dialog id="eventDialog"><h2 id="eventHeading">Aftale</h2><form id="eventForm"><label class="field">Hvad skal der ske?<input name="title" required maxlength="120"></label><label class="field">Dato<input name="date" type="date" required></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="field">Fra<input name="start" type="time"></label><label class="field">Til<input name="end" type="time"></label></div><div class="field">Hvem deltager?<div class="checks" id="eventPeople"></div></div><label class="field">Gentagelse<select name="repeat"><option value="none">Ingen</option><option value="weekly">Hver uge</option></select></label><label class="field"><input name="showFamily" type="checkbox" checked> Vis på familieplanen</label><label class="field">Noter<textarea name="notes" rows="2"></textarea></label><div class="dialogactions"><button type="button" class="danger" id="deleteEvent">Slet</button><button type="button" id="cancelEvent">Annuller</button><button class="save" type="submit">Gem</button></div></form></dialog>
 <dialog id="taskDialog"><h2 id="taskHeading"></h2><form id="taskForm"><label class="field">Hvad skal huskes eller laves?<input name="title" required maxlength="180"></label><div id="homeworkFields" hidden><label class="field">Hvem?<select name="hwPerson" id="hwPerson"></select></label><label class="field">Fag<input name="hwSubject" maxlength="80" placeholder="Fx matematik"></label><label class="field">Sider<input name="hwPages" maxlength="80" placeholder="Fx 12–15"></label><label class="field"><input name="hwDone" type="checkbox"> Lavet</label></div><label class="field" id="taskDateLabel">Dag<input name="date" type="date" required></label><div id="taskPeopleWrap" class="field">Hvem skal huske det?<div class="checks" id="taskPeople"></div></div><div class="dialogactions"><button type="button" class="danger" id="deleteTask">Slet</button><button type="button" id="cancelTask">Annuller</button><button class="save" type="submit">Gem</button></div></form></dialog>
@@ -167,21 +178,33 @@ function render(){let start=monday(cursor),end=add(start,6);$('weekpick').textCo
 function renderPersonal(cal,start){let wrap=node('div','personal');let p=people.find(x=>x.name===selected);let profile=node('div','personalprofile'),photoButton=node('button','personalphoto');photoButton.type='button';photoButton.style.setProperty('--tint',p.tint);photoButton.setAttribute('aria-label','Skift profilbillede for '+display(selected));photoButton.append(avatar(p),node('span','photohelp','Tryk her for at skifte billede'));photoButton.onclick=()=>{photoPerson=selected;$('photoInput').click()};profile.append(photoButton);wrap.append(profile,node('h2','',display(selected)+'s kalender'));for(let i=0;i<7;i++){let d=add(start,i),day=node('div','personalday');day.append(node('h3','',fmt(d,{weekday:'long',day:'numeric',month:'long'})));for(let e of eventsFor(d,selected,false)){let b=node('button','',`${e.start||''} ${e.title||''}`);b.onclick=()=>openEvent(e);day.append(b)}let b=node('button','','+ Tilføj aftale');b.onclick=()=>openEvent(null,iso(d),selected,false);day.append(b);wrap.append(day)}cal.append(wrap)}
 function renderReminders(start,end){let root=$('reminders');root.replaceChildren();let items=reminders.filter(t=>t.date>=iso(start)&&t.date<=iso(end)).sort((a,b)=>a.date.localeCompare(b.date));if(!items.length)root.append(node('p','muted','Ingen husketing denne uge'));for(let t of items){let line=node('div','item'+(t.done?' done':'')),cb=node('input');cb.type='checkbox';cb.checked=!!t.done;cb.onchange=()=>{t.done=cb.checked;if(persist('familyPlannerReminders',reminders))render()};let lab=node('span','label');lab.append(document.createTextNode(t.title),node('small','due',fmt(asDate(t.date),{weekday:'long'})));lab.onclick=()=>openTask('reminder',null,t);let av=node('span','tinyav');for(let n of t.people||[]){let p=people.find(p=>p.name===n);if(p)av.append(avatar(p))}line.append(cb,lab,av);root.append(line)}}
 function renderHomework(){
- let root=$('homework');root.replaceChildren();
- let today=iso(new Date());
- let items=homework.filter(t=>t.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
+ const root=$('homework');root.replaceChildren();
+ const today=iso(new Date());
+ const items=homework.filter(t=>t.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
  if(!items.length){root.append(node('p','muted','Ingen aktuelle lektier'));return}
- for(let t of items){
-  let line=node('div','item'+(t.done?' done':'')),cb=node('input');cb.type='checkbox';cb.checked=!!t.done;
-  cb.setAttribute('aria-label','Lavet');
-  cb.onchange=()=>{t.done=cb.checked;if(persist('familyPlannerHomework',homework))render()};
-  let lab=node('span','label');
-  let p=people.find(p=>p.name===t.person);
-  let subject=t.subject||t.title||'Lektie',pages=t.pages?(' · s. '+t.pages):'';
-  lab.append(node('span','',subject+pages),node('small','due','Afleveres '+fmt(asDate(t.date),{day:'numeric',month:'short'})));
-  lab.onclick=()=>openTask('homework',null,t);
-  let av=node('span','tinyav');if(p)av.append(avatar(p));
-  line.append(cb,lab,av);root.append(line)
+ // Show one portrait for each person, followed by all their assignments.
+ const grouped=new Map();
+ for(const t of items){const person=t.person||'Ukendt';if(!grouped.has(person))grouped.set(person,[]);grouped.get(person).push(t)}
+ // Earliest due assignment determines the order of person groups.\n const orderedGroups=[...grouped.entries()].sort((a,b)=>a[1][0].date.localeCompare(b[1][0].date));\n for(const [name,tasks] of orderedGroups){\n  tasks.sort((a,b)=>a.date.localeCompare(b.date));
+  const group=node('div','hw-group');
+  const portrait=node('div','hw-portrait');
+  const p=people.find(p=>p.name===name);
+  if(p)portrait.append(avatar(p));else portrait.textContent=name.slice(0,1);
+  portrait.title=display(name);
+  const list=node('div','hw-list');
+  for(const t of tasks){
+   const line=node('div','hw-task'+(t.done?' done':''));
+   const lab=node('div','hw-tasktext');
+   const subject=t.subject||t.title||'Lektie';
+   const pages=t.pages?' · s. '+t.pages:'';
+   lab.append(node('span','',subject+pages),node('small','due','Afleveres '+fmt(asDate(t.date),{day:'numeric',month:'short'})));
+   lab.onclick=()=>openTask('homework',null,t);
+   const cb=node('input');cb.type='checkbox';cb.checked=!!t.done;
+   cb.setAttribute('aria-label','Lavet: '+subject);
+   cb.onchange=()=>{t.done=cb.checked;if(persist('familyPlannerHomework',homework))render()};
+   line.append(lab,cb);list.append(line);
+  }
+  group.append(portrait,list);root.append(group);
  }
 }
 function checks(root,chosen){root.replaceChildren();for(let p of people){let label=node('label'),cb=node('input');cb.type='checkbox';cb.value=p.name;cb.checked=chosen.includes(p.name);label.append(cb,document.createTextNode(' '+display(p.name)));root.append(label)}}

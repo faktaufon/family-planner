@@ -1875,6 +1875,7 @@ document.querySelector('.mast h1').addEventListener('click',()=>{if(selected){se
 </script>
 <script>
 (function(){
+ try {
  const $=id=>document.getElementById(id),f=$('eventForm'),dlg=$('eventDialog');
  if(!f||!dlg)return;
  const title=f.elements.title.closest('label');title.classList.add('v102-title-field');title.firstChild.textContent='';f.elements.title.placeholder='Begivenhed';f.elements.title.setAttribute('aria-label','Begivenhed');
@@ -1916,8 +1917,9 @@ document.querySelector('.mast h1').addEventListener('click',()=>{if(selected){se
  fixedBtn.addEventListener('click',()=>{const key='familyPlannerEventColorLabels';let labels={};try{labels=JSON.parse(localStorage.getItem(key)||'{}')}catch{};colorInput.value=labels[v97Owner||'Mor']?.[f.elements.eventColor.value]||''});
  tf.addEventListener('submit',()=>{const name=colorInput.value.trim();if(!name)return;const key='familyPlannerEventColorLabels';let labels={};try{labels=JSON.parse(localStorage.getItem(key)||'{}')}catch{};const owner=v97Owner||'Mor';labels[owner]={...(labels[owner]||{}),[f.elements.eventColor.value]:name};localStorage.setItem(key,JSON.stringify(labels));},true);
  // The original editor opens through openEvent; synchronize new controls after it initializes.
- const prior=window.openEvent;window.openEvent=function(...args){prior(...args);syncFromOriginal();addAll();updateAll();extra.classList.remove('is-open');if(args[0]?.allDay){allDay.querySelector('input').checked=true;toggleAllDay()}};
+ const prior=openEvent;openEvent=function(...args){prior(...args);syncFromOriginal();addAll();updateAll();extra.classList.remove('is-open');if(args[0]?.allDay){allDay.querySelector('input').checked=true;toggleAllDay()}};
  f.addEventListener('submit',()=>{f.elements.date.value=start.d.value;f.elements.start.value=start.t.value;f.elements.end.value=end.t.value},true);
  // Preserve details after the existing event opens; do not disturb old storage keys.
+ } catch(error) { console.error("Optional editor enhancement failed", error); }
 })();
 </script></body></html>

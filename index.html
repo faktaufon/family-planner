@@ -2148,14 +2148,9 @@ $('v97Edit').onclick=()=>{$('eventDetailDialog').close();openEvent(v97DetailEven
 
 $('v108DeleteDetail').onclick=async()=>{
  const e=v97DetailEvent;
- if(!e||!await v121ConfirmDelete())return;
- const next=events.filter(x=>x.id!==e.id);
- const nextReminders=reminders.filter(t=>t.eventId!==e.id);
- if(persist('familyPlannerEvents',next)&&persist('familyPlannerReminders',nextReminders)){
-  events=next;reminders=nextReminders;
-  v97FileOp(e.id,'delete').catch(()=>{});
+ if(!e)return;
+ if(await v124DeleteForPeople(e)){
   $('eventDetailDialog').close();
-  render();
  }
 };
 
@@ -2167,14 +2162,11 @@ $('v97DeleteTemplate').onclick=()=>{const id=$('v97TemplateSelect').value;if(!id
 $('eventForm').elements.title.addEventListener('input',ev=>{if(editingEvent)return;const t=(fixedAppointments[v97Owner]||[]).find(x=>x.shortcut&&x.shortcut.toLowerCase()===ev.target.value.trim().toLowerCase());if(t)v97UseTemplate(t)});
 $('cancelEvent').onclick=()=>$('eventDialog').close();
 $('deleteEvent').onclick=async()=>{
- if(await v121ConfirmDelete()){
-  let next=events.filter(x=>x.id!==editingEvent);
-  let nextReminders=reminders.filter(t=>t.eventId!==editingEvent);
-  if(persist('familyPlannerEvents',next)&&persist('familyPlannerReminders',nextReminders)){
-   events=next;reminders=nextReminders;v97FileOp(editingEvent,'delete').catch(()=>{});$('eventDialog').close();render();
-  }
- }
+ const e=events.find(x=>x.id===editingEvent);
+ if(!e)return;
+ if(await v124DeleteForPeople(e))$('eventDialog').close();
 };
+
 function photoChecks(root,chosen){
  root.replaceChildren();
  for(const p of people){
@@ -2464,5 +2456,84 @@ function v121ConfirmDelete(){
   document.getElementById('v121Confirm').onclick=()=>finish(true);
   d.showModal();
  });
+}
+
+</script>
+<dialog id="v124PeopleDeleteDialog" aria-label="Slet aftale for hvem?">
+ <h2>Slet aftale for hvem?</h2>
+ <p>Vælg de familiemedlemmer, aftalen skal fjernes fra.</p>
+ <div id="v124DeletePeople"></div>
+ <div class="v124-actions">
+  <button type="button" id="v124Cancel">Annuller</button>
+  <button type="button" id="v124Confirm" disabled>Slet for valgte</button>
+ </div>
+</dialog>
+<style>
+#v124PeopleDeleteDialog{width:min(90vw,390px);max-height:85dvh;overflow:auto;box-sizing:border-box;border:1px solid #dedfd4;border-radius:22px;background:#fffdf7;color:#614c41;padding:24px 19px;box-shadow:0 15px 45px #44382d33}
+#v124PeopleDeleteDialog::backdrop{background:#2e2a2759}
+#v124PeopleDeleteDialog h2{font-size:21px;margin:0 0 8px;font-weight:500;color:#654e42}
+#v124PeopleDeleteDialog p{font-size:14px;line-height:1.4;margin:0 0 16px}
+#v124DeletePeople{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0 19px}
+.v124-person{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;font-size:13px;text-align:center}
+.v124-person input{position:absolute;opacity:0;width:1px;height:1px}
+.v124-avatar{display:flex;width:58px;height:58px;align-items:center;justify-content:center;border-radius:50%;border:2px solid #e4ddd2;box-sizing:border-box;background:#f5f0e8;overflow:hidden}
+.v124-avatar img{width:100%;height:100%;object-fit:cover}
+.v124-person:has(input:checked) .v124-avatar{border:4px solid #806452;box-shadow:0 0 0 2px #e6d5c3}
+.v124-person:has(input:checked) .v124-name{font-weight:700}
+.v124-actions{display:flex;gap:10px;justify-content:flex-end}
+.v124-actions button{font:inherit;font-size:14px;border-radius:11px;padding:11px 14px;border:1px solid #dedbd1;background:#f6f2e9;color:#634f44}
+#v124Confirm{background:#f1e3df;color:#955b58}
+#v124Confirm:disabled{opacity:.42}
+</style>
+<script>
+async function v124DeleteForPeople(e){
+ if(!e||!Array.isArray(e.people)||!e.people.length)return false;
+ let selected;
+ if(e.people.length===1){
+  if(!await v121ConfirmDelete())return false;
+  selected=[...e.people];
+ }else{
+  selected=await new Promise(resolve=>{
+   const dlg=document.getElementById('v124PeopleDeleteDialog');
+   const root=document.getElementById('v124DeletePeople');
+   const confirmBtn=document.getElementById('v124Confirm');
+   root.replaceChildren();
+   const current=[...new Set(e.people)];
+   current.forEach(name=>{
+    const label=document.createElement('label');label.className='v124-person';
+    const check=document.createElement('input');check.type='checkbox';check.value=name;
+    const circle=document.createElement('span');circle.className='v124-avatar';
+    const saved=typeof photos!=='undefined'&&photos[name];
+    if(saved){const img=document.createElement('img');img.src=saved;img.alt='';circle.append(img)}
+    else circle.textContent=name==='Mor'?'♡':name==='Far'?'♧':name.charAt(0);
+    const caption=document.createElement('span');caption.className='v124-name';caption.textContent=typeof display==='function'?display(name):name;
+    label.append(check,circle,caption);root.append(label);
+   });
+   confirmBtn.disabled=true;
+   root.onchange=()=>{confirmBtn.disabled=!root.querySelector('input:checked')};
+   let settled=false;
+   const finish=value=>{if(settled)return;settled=true;dlg.removeEventListener('close',onClose);if(dlg.open)dlg.close();resolve(value)};
+   const onClose=()=>finish(null);
+   dlg.addEventListener('close',onClose,{once:true});
+   document.getElementById('v124Cancel').onclick=()=>finish(null);
+   confirmBtn.onclick=()=>finish([...root.querySelectorAll('input:checked')].map(x=>x.value));
+   dlg.showModal();
+  });
+  if(!selected||!selected.length)return false;
+ }
+ const remaining=e.people.filter(p=>!selected.includes(p));
+ const next=remaining.length?events.map(item=>item.id===e.id?{...item,people:remaining,familyWide:false}:item):events.filter(item=>item.id!==e.id);
+ if(!persist('familyPlannerEvents',next))return false;
+ events=next;
+ const nextReminders=reminders.flatMap(r=>{
+  if(r.eventId!==e.id)return [r];
+  if(!remaining.length)return [];
+  const people=(r.people||[]).filter(p=>remaining.includes(p));
+  return people.length?[{...r,people}]:[];
+ });
+ if(persist('familyPlannerReminders',nextReminders))reminders=nextReminders;
+ if(!remaining.length&&typeof v97FileOp==='function')v97FileOp(e.id,'delete').catch(()=>{});
+ render();
+ return true;
 }
 </script></body></html>

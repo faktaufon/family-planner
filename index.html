@@ -3039,4 +3039,71 @@ function v133AskDeleteLinked(count){
 .v127-day .v127-day-tools .v127-add-bg{font-weight:600!important}
 @media(max-width:360px){.v127-day .v138-day-photo{flex-basis:65px}.v127-day .v138-day-date{flex-basis:68px}.v127-day .v138-day-weekday{font-size:29px}}
 </style>
+<style>
+/* v141 – faste aftaler vælges i deres egen oversigt */
+#eventForm #v100Shortcuts{display:none!important}
+#v141FixedDialog{width:min(92vw,430px);max-height:78dvh;overflow:auto;border:1px solid #ded8cd;border-radius:22px;background:#fffdf8;color:#655247;padding:20px;box-sizing:border-box;box-shadow:0 15px 45px #3d332d55}
+#v141FixedDialog::backdrop{background:#3d403c77}
+#v141FixedDialog h2{font:normal 27px Georgia,serif;color:#718674;margin:0 0 6px}
+#v141FixedDialog p{font-size:13px;margin:0 0 15px;color:#85796e}
+#v141FixedList{display:grid;gap:9px;margin:12px 0 18px}
+.v141-fixed-item{width:100%;display:flex;gap:12px;align-items:center;text-align:left;border:1px solid #e1d8cd;background:#faf7f1;border-radius:14px;padding:12px;color:#665348;font:inherit}
+.v141-fixed-color{width:34px;height:34px;border:1px solid #c6bcb1;border-radius:10px;flex:none}
+.v141-fixed-info{display:grid;gap:3px;min-width:0}.v141-fixed-info strong{font-size:15px}.v141-fixed-info small{font-size:12px;color:#897a70}
+#v141FixedClose{width:100%;padding:12px;border-radius:12px;background:#e7eee3;border:1px solid #d3dfd0;color:#536b55;font:inherit}
+</style>
+<dialog id="v141FixedDialog" aria-label="Vælg fast aftale"><h2>Faste aftaler</h2><p id="v141FixedOwner"></p><div id="v141FixedList"></div><button id="v141FixedClose" type="button">Tilbage</button></dialog>
+<script>
+/* v141: Ingen ændringer i gemte data eller eksisterende aftaler. */
+(function(){
+ const type=document.getElementById('v127EventType');
+ const dialog=document.getElementById('v141FixedDialog');
+ const list=document.getElementById('v141FixedList');
+ const form=document.getElementById('eventForm');
+ if(!type||!dialog||!form)return;
+ const option=document.createElement('option');option.value='fixed';option.textContent='Faste aftaler';type.append(option);
+ const visualRows=()=>Array.from(form.querySelectorAll('.v102-date-row'));
+ function setTimes(t){
+  // The editor has separate visible time fields; update BOTH sets.
+  form.elements.start.value=t.start||'';
+  form.elements.end.value=t.end||'';
+  const rows=visualRows();
+  if(rows[0]){const x=rows[0].querySelector('input[type="time"]');if(x)x.value=t.start||''}
+  if(rows[1]){const x=rows[1].querySelector('input[type="time"]');if(x)x.value=t.end||''}
+ }
+ function apply(t){
+  v97UseTemplate(t);
+  setTimes(t);
+  type.value='appointment';
+  dialog.close();
+ }
+ function show(){
+  type.value='appointment'; // Faste aftaler oprettes som almindelige aftaler.
+  const owner=v97Owner||selected||'Mor';
+  document.getElementById('v141FixedOwner').textContent='Gemte aftaler for '+(typeof display==='function'?display(owner):owner);
+  list.replaceChildren();
+  const templates=fixedAppointments[owner]||[];
+  if(!templates.length){const empty=document.createElement('p');empty.textContent='Ingen faste aftaler gemt endnu. Opret en almindelig aftale, og vælg “Gem som fast aftale”.';list.append(empty)}
+  templates.forEach(t=>{
+   const b=document.createElement('button');b.type='button';b.className='v141-fixed-item';
+   const swatch=document.createElement('span');swatch.className='v141-fixed-color';swatch.style.background=t.color||'#dce9da';
+   const info=document.createElement('span');info.className='v141-fixed-info';
+   const title=document.createElement('strong');title.textContent=t.title||t.shortcut||'Fast aftale';
+   const time=document.createElement('small');time.textContent=(t.start||'Tid ikke angivet')+(t.end?' – '+t.end:'')+(t.shortcut?' · '+t.shortcut:'');
+   info.append(title,time);b.append(swatch,info);b.onclick=()=>apply(t);list.append(b);
+  });
+  dialog.showModal();
+ }
+ type.addEventListener('change',()=>{if(type.value==='fixed')show()});
+ document.getElementById('v141FixedClose').onclick=()=>dialog.close();
+ dialog.addEventListener('close',()=>{if(type.value==='fixed')type.value='appointment'});
+ // Old shortcut behavior also needs to synchronize the visible iPhone time inputs.
+ document.getElementById('v100Shortcuts')?.addEventListener('click',e=>{
+  const button=e.target.closest('button');if(!button)return;
+  const buttons=Array.from(button.parentElement.querySelectorAll('button'));
+  const t=(fixedAppointments[v97Owner]||[])[buttons.indexOf(button)];
+  if(t)setTimes(t);
+ });
+})();
+</script>
 </body></html>

@@ -1890,10 +1890,12 @@ function renderPersonalDay(cal,day){
  const wrap=node('div','personal-week v127-day');wrap.style.setProperty('--personal-tint',p.tint);
  const back=node('button','v127-back','‹ Tilbage til uge '+week(monday(day)));
  back.onclick=()=>{v130DayDate=null;render()};wrap.append(back);
- wrap.append(node('h2','v127-heading',display(selected)+' · '+fmt(day,{weekday:'long',day:'numeric',month:'long'})));
+ const dayProfile=node('div','v137-day-profile');
+ const dayPhoto=node('button','v137-day-photo');dayPhoto.type='button';dayPhoto.setAttribute('aria-label','Skift profilbillede for '+display(selected));dayPhoto.append(avatar(p));dayPhoto.onclick=()=>{photoPerson=selected;$('photoInput').click()};
+ const dayMeta=node('div','v137-day-meta');dayMeta.append(node('strong','',display(selected)),node('span','',fmt(day,{weekday:'long',day:'numeric',month:'long'})));dayProfile.append(dayPhoto,dayMeta);wrap.append(dayProfile);
  const toolbar=node('div','v127-day-tools');
- const add=node('button','v127-add','+ Ny aftale');add.onclick=()=>openEvent(null,iso(day),selected,false);
- const addBg=node('button','v127-add-bg','+ Baggrundsblok');addBg.onclick=()=>openEvent(null,iso(day),selected,false,'background');
+ const add=node('button','v127-add','＋ Ny aftale');add.onclick=()=>openEvent(null,iso(day),selected,false);
+ const addBg=node('button','v127-add-bg','＋ Baggrundsblok');addBg.onclick=()=>openEvent(null,iso(day),selected,false,'background');
  toolbar.append(addBg,add);
  wrap.append(toolbar);
  holidaysOn(day).forEach(h=>wrap.append(node('div','pw-day-holiday',h.name)));
@@ -1902,18 +1904,18 @@ function renderPersonalDay(cal,day){
  const top=14;
  // A stable hour scale is shared across days; only the vertical scale changes.
  let hour=v130HourHeight||50;
- timeline.style.height=(19*hour+top+24)+'px';
+ timeline.style.height=(24*hour+top+24)+'px';
  let pinch=null;
  const fingerDistance=e=>Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
  const redrawScale=(newHour,anchor,screenY)=>{
   hour=Math.max(24,Math.min(190,newHour));v130HourHeight=hour;
-  timeline.style.height=(19*hour+top+24)+'px';
+  timeline.style.height=(24*hour+top+24)+'px';
   track.style.height=timeline.style.height;
   timeline.querySelectorAll('.v127-hour').forEach((el,i)=>el.style.top=(top+i*hour)+'px');
   track.querySelectorAll('.v127-line').forEach((el,i)=>el.style.top=(top+i*hour)+'px');
   track.querySelectorAll('.v127-block').forEach(el=>{
    const a=Number(el.dataset.start),b=Number(el.dataset.end);
-   el.style.top=(top+(a-300)/60*hour)+'px';
+   el.style.top=(top+a/60*hour)+'px';
    el.style.height=Math.max(24,(b-a)/60*hour-2)+'px';
   });
   scroller.scrollTop=Math.max(0,top+anchor*hour-screenY);
@@ -1947,21 +1949,21 @@ function renderPersonalDay(cal,day){
  scroller.addEventListener('touchend',e=>{if(e.touches.length<2)pinch=null},{passive:true});
  scroller.addEventListener('touchcancel',()=>pinch=null,{passive:true});
  const track=node('div','v127-track');track.style.height=timeline.style.height;timeline.append(track);
- for(let h=5;h<=24;h++){
+ for(let h=0;h<=24;h++){
   const label=node('span','v127-hour',String(h).padStart(2,'0')+'.00');
-  label.style.top=(top+(h-5)*hour)+'px';timeline.append(label);
-  const line=node('div','v127-line');line.style.top=(top+(h-5)*hour)+'px';track.append(line);
+  label.style.top=(top+h*hour)+'px';timeline.append(label);
+  const line=node('div','v127-line');line.style.top=(top+h*hour)+'px';track.append(line);
  }
  const entries=eventsFor(day,selected,false);
  const minutes=(t,def)=>/^\d\d:\d\d$/.test(t||'')?Number(t.slice(0,2))*60+Number(t.slice(3,5)):def;
  const draw=(e,background)=>{
   if(e.allDay)return;
   const a=minutes(e.start,720),b=Math.max(a+15,minutes(e.end,a+60));
-  const start=Math.max(300,a),end=Math.min(1440,b);
+  const start=Math.max(0,a),end=Math.min(1440,b);
   if(end<=start)return;
   const block=node('button',background?'v127-block v127-background':'v127-block v127-appointment');
   block.type='button';block.dataset.start=String(start);block.dataset.end=String(end);
-  block.style.top=(top+(start-300)/60*hour)+'px';
+  block.style.top=(top+start/60*hour)+'px';
   block.style.height=Math.max(24,(end-start)/60*hour-2)+'px';
   block.style.background=e.color|| (background?'#dce9da':p.tint);
   if(!background){block.style.background=e.color||'#f2dde1';}
@@ -1980,13 +1982,13 @@ function renderPersonalDay(cal,day){
  track.onclick=ev=>{
   if(ev.target!==track&&ev.target.className!=='v127-line')return;
   const rect=track.getBoundingClientRect();
-  const m=Math.max(300,Math.min(1380,Math.floor(((ev.clientY-rect.top-top)/hour*60+300)/30)*30));
+  const m=Math.max(0,Math.min(1380,Math.floor(((ev.clientY-rect.top-top)/hour*60)/30)*30));
   openEvent(null,iso(day),selected,false);
   $('eventForm').elements.start.value=pad(Math.floor(m/60))+':'+pad(m%60);
   $('eventForm').elements.end.value=pad(Math.floor((m+60)/60))+':'+pad((m+60)%60);
  };
  scroller.append(timeline);wrap.append(scroller);cal.append(wrap);
- requestAnimationFrame(()=>{if(scroller.isConnected){scroller.scrollTop=v131Scroll===null?Math.max(0,hour):v131Scroll;v131Scroll=null}});
+ requestAnimationFrame(()=>{if(scroller.isConnected){scroller.scrollTop=v131Scroll===null?Math.max(0,6*hour):v131Scroll;v131Scroll=null}});
 }
 
 function renderReminders(start,end){
@@ -2995,4 +2997,16 @@ function v133AskDeleteLinked(count){
  });
 }
 </script>
+
+<style id="v137-day-polish">
+.v137-day-profile{display:flex;align-items:center;justify-content:center;gap:13px;margin:2px 0 4px;padding:8px 12px;background:color-mix(in srgb,var(--personal-tint) 48%,#fffaf4);border-radius:17px;min-height:72px}
+.v137-day-photo{border:0;background:transparent;padding:0;flex:0 0 auto;display:grid;place-items:center}
+.v137-day-photo .avatar{width:54px!important;height:54px!important;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px}
+.v137-day-meta{display:flex;flex-direction:column;gap:3px;min-width:0}
+.v137-day-meta strong{font-family:Georgia,serif;font-weight:500;font-size:21px;color:#667b68}
+.v137-day-meta span{font-size:13px;color:#746f65;text-transform:capitalize}
+.v127-day .v127-day-tools{justify-content:center;gap:8px;flex-wrap:nowrap;margin:0 0 4px}
+.v127-day .v127-day-tools button{flex:1 1 0;min-width:0;padding:10px 7px;border-radius:11px;font-size:13px;background:#f8f5ed;color:#665e53;border:1px solid #d9d4c8;box-shadow:none}
+.v127-day .v127-day-tools .v127-add{background:#e7ece2;color:#4e6753;border-color:#cbd8c9;font-weight:600}
+</style>
 </body></html>

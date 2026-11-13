@@ -1991,7 +1991,17 @@ function renderPersonalDay(cal,day){
   $('eventForm').elements.end.value=pad(Math.floor((m+60)/60))+':'+pad((m+60)%60);
  };
  scroller.append(timeline);wrap.append(scroller);cal.append(wrap);
- requestAnimationFrame(()=>{if(scroller.isConnected){scroller.scrollTop=v131Scroll===null?Math.max(0,6*hour):v131Scroll;v131Scroll=null}});
+ requestAnimationFrame(()=>{
+  if(!scroller.isConnected)return;
+  // Default: show approximately 06:00–18:00 in the visible day viewport.
+  // Preserve a user-adjusted pinch zoom and the scroll position on day swipes.
+  if(v130HourHeight===null){
+   const fittedHour=Math.max(24,Math.min(190,(scroller.clientHeight-24)/12));
+   redrawScale(fittedHour,6,0);
+  }
+  scroller.scrollTop=v131Scroll===null?Math.max(0,top+6*hour):v131Scroll;
+  v131Scroll=null;
+ });
 }
 
 function renderReminders(start,end){
@@ -3024,6 +3034,9 @@ function v133AskDeleteLinked(count){
 .v127-day .v138-month-label{font:500 10px Montserrat,Arial,sans-serif;letter-spacing:.13em;text-transform:uppercase;white-space:nowrap}
 .v127-day .v138-day-number{font:400 37px Georgia,serif;line-height:1.05}
 .v127-day .v127-day-tools .v127-add-bg{background:#f3e4e5!important;color:#735a60!important;border-color:#e3cfd2!important}
+/* v139: samme skriftvægt på begge handlingsknapper. */
+.v127-day .v127-day-tools .v127-add,
+.v127-day .v127-day-tools .v127-add-bg{font-weight:600!important}
 @media(max-width:360px){.v127-day .v138-day-photo{flex-basis:65px}.v127-day .v138-day-date{flex-basis:68px}.v127-day .v138-day-weekday{font-size:29px}}
 </style>
 </body></html>

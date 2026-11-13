@@ -3102,11 +3102,11 @@ function v133AskDeleteLinked(count){
    items.forEach(t=>{
     const row=document.createElement('div');row.className='v142-fixed-row';
     const b=document.createElement('button');b.type='button';b.className='v141-fixed-item';
-    const swatch=document.createElement('span');swatch.className='v141-fixed-color';swatch.style.background=t.color||'#dce9da';
+    const swatch=document.createElement('span');swatch.className='v141-fixed-color';swatch.style.background=t.color||'#dce9da';b.style.background=t.color||'#dce9da';
     const info=document.createElement('span');info.className='v141-fixed-info';
     const title=document.createElement('strong');title.textContent=t.shortcut||t.title||'Fast aftale';
     const subtitle=document.createElement('small');subtitle.textContent=(t.start||'Tid ikke angivet')+(t.end?' – '+t.end:'')+(t.title&&t.title!==t.shortcut?' · '+t.title:'');
-    info.append(title,subtitle);b.append(swatch,info);b.onclick=()=>apply(t);
+    info.append(title,subtitle);b.append(info);b.onclick=()=>apply(t);
     const edit=document.createElement('button');edit.type='button';edit.className='v142-edit-category';edit.textContent='⋯';edit.setAttribute('aria-label','Skift kategori for '+(t.shortcut||t.title));
     edit.onclick=()=>{
      const nextName=prompt('Kategori for '+(t.shortcut||t.title)+' (fx Arbejde eller Sport)',t.category||t.title||'');
@@ -3132,4 +3132,18 @@ function v133AskDeleteLinked(count){
  });
 })();
 </script>
+
+<style>
+/* v143: compact, fully colored fixed-appointment buttons; categories remain independent of color */
+#v141FixedDialog{padding:18px;max-height:82dvh}
+#v141FixedList{gap:13px;margin:10px 0 15px}
+.v142-category{gap:5px}
+.v142-category h3{font-size:15px;margin:0 0 3px}
+.v142-fixed-row{gap:5px}
+.v142-fixed-row .v141-fixed-item{min-height:46px;padding:7px 11px;border-radius:11px;border:1px solid #bcb5aa;box-shadow:none;color:#51463f}
+.v142-fixed-row .v141-fixed-info{display:flex;align-items:baseline;flex-wrap:wrap;gap:3px 10px;width:100%}
+.v142-fixed-row .v141-fixed-info strong{font-size:15px;line-height:1.2;min-width:34px}
+.v142-fixed-row .v141-fixed-info small{font-size:11px;line-height:1.25;color:#5d554d}
+.v142-fixed-row .v142-edit-category{width:32px;border-radius:10px;font-size:19px;min-height:46px;padding:0}
+</style>
 </body></html>

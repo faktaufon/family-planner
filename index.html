@@ -1890,9 +1890,12 @@ function renderPersonalDay(cal,day){
  const wrap=node('div','personal-week v127-day');wrap.style.setProperty('--personal-tint',p.tint);
  const back=node('button','v127-back','‹ Tilbage til uge '+week(monday(day)));
  back.onclick=()=>{v130DayDate=null;render()};wrap.append(back);
- const dayProfile=node('div','v137-day-profile');
- const dayPhoto=node('button','v137-day-photo');dayPhoto.type='button';dayPhoto.setAttribute('aria-label','Skift profilbillede for '+display(selected));dayPhoto.append(avatar(p));dayPhoto.onclick=()=>{photoPerson=selected;$('photoInput').click()};
- const dayMeta=node('div','v137-day-meta');dayMeta.append(node('strong','',display(selected)),node('span','',fmt(day,{weekday:'long',day:'numeric',month:'long'})));dayProfile.append(dayPhoto,dayMeta);wrap.append(dayProfile);
+ const dayProfile=node('div','v138-day-profile');
+ const dayPhoto=node('button','v138-day-photo');dayPhoto.type='button';dayPhoto.setAttribute('aria-label','Skift profilbillede for '+display(selected));dayPhoto.append(avatar(p));dayPhoto.onclick=()=>{photoPerson=selected;$('photoInput').click()};
+ dayPhoto.append(node('span','v138-photo-label',display(selected)));
+ const dayWeekday=node('div','v138-day-weekday',fmt(day,{weekday:'long'}));
+ const dayDate=node('div','v138-day-date');dayDate.append(node('span','v138-month-label',fmt(day,{month:'long'})),node('span','v138-day-number',String(day.getDate())));
+ dayProfile.append(dayPhoto,dayWeekday,dayDate);wrap.append(dayProfile);
  const toolbar=node('div','v127-day-tools');
  const add=node('button','v127-add','＋ Ny aftale');add.onclick=()=>openEvent(null,iso(day),selected,false);
  const addBg=node('button','v127-add-bg','＋ Baggrundsblok');addBg.onclick=()=>openEvent(null,iso(day),selected,false,'background');
@@ -3008,5 +3011,19 @@ function v133AskDeleteLinked(count){
 .v127-day .v127-day-tools{justify-content:center;gap:8px;flex-wrap:nowrap;margin:0 0 4px}
 .v127-day .v127-day-tools button{flex:1 1 0;min-width:0;padding:10px 7px;border-radius:11px;font-size:13px;background:#f8f5ed;color:#665e53;border:1px solid #d9d4c8;box-shadow:none}
 .v127-day .v127-day-tools .v127-add{background:#e7ece2;color:#4e6753;border-color:#cbd8c9;font-weight:600}
+</style>
+
+<style id="v138-day-layout">
+/* Dagsvisning: samme tre-delte profiloverskrift som ugevisning. */
+.v127-day .v138-day-profile{display:flex;align-items:stretch;min-height:84px;background:#fff7f0;border-radius:22px;padding:9px 12px;margin:2px 0 12px;color:#60483c;overflow:hidden}
+.v127-day .v138-day-photo{display:flex;flex:0 0 72px;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:0;padding:0 8px 0 0;color:inherit}
+.v127-day .v138-day-photo .avatar{width:49px!important;height:49px!important;border-radius:50%;overflow:hidden}
+.v127-day .v138-photo-label{font:600 10px Montserrat,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.v127-day .v138-day-weekday{display:flex;flex:1 1 auto;min-width:0;align-items:center;justify-content:center;text-align:center;border-left:1px solid #b8b9ab;border-right:1px solid #b8b9ab;padding:0 6px;font:400 clamp(29px,8vw,43px) Allura,'Brush Script MT',cursive;text-transform:capitalize;line-height:1.1}
+.v127-day .v138-day-date{display:flex;flex:0 0 78px;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding-left:7px}
+.v127-day .v138-month-label{font:500 10px Montserrat,Arial,sans-serif;letter-spacing:.13em;text-transform:uppercase;white-space:nowrap}
+.v127-day .v138-day-number{font:400 37px Georgia,serif;line-height:1.05}
+.v127-day .v127-day-tools .v127-add-bg{background:#f3e4e5!important;color:#735a60!important;border-color:#e3cfd2!important}
+@media(max-width:360px){.v127-day .v138-day-photo{flex-basis:65px}.v127-day .v138-day-date{flex-basis:68px}.v127-day .v138-day-weekday{font-size:29px}}
 </style>
 </body></html>

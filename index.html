@@ -3444,9 +3444,14 @@ function drawTabs(){nav.replaceChildren();nav.append(button('Indkøbsliste',()=>
 function drawCurrent(){note.textContent='Aktuel indkøbsliste · kryds af, når varen er i kurven';root.append(el('div','v154-count',`${items.filter(x=>x.done).length} af ${items.length} varer i kurven`));
  const names=[...categories.filter(cat=>items.some(x=>catOf(x)===cat)),...new Set(items.map(catOf).filter(cat=>!categories.includes(cat)))];
  if(!names.length)root.append(el('p','v153-empty','Indkøbslisten er tom. Vælg varer fra en standardliste ovenfor, eller tilføj en vare nedenfor.'));
- for(const cat of names){const section=el('section','v154-current-group');const header=el('div','v155-group-header');const h=el('h3','v154-group-title',cat);const plus=button('+',()=>{const field=section.querySelector('.v154-add input');if(field){field.focus();field.scrollIntoView({block:'nearest',behavior:'smooth'})}},'v155-heading-plus');plus.setAttribute('aria-label','Tilføj vare til '+cat);header.append(h,plus);section.append(header);
+ for(const cat of names){const section=el('section','v154-current-group');const header=el('div','v155-group-header');const h=el('h3','v154-group-title',cat);const plus=button('+',()=>{const f=section.querySelector('.v156-inline-add');if(!f)return;const open=f.hidden;f.hidden=!open;plus.setAttribute('aria-expanded',String(open));if(open){const input=f.querySelector('input');input.focus();f.scrollIntoView({block:'nearest',behavior:'smooth'})}},'v155-heading-plus');plus.setAttribute('aria-label','Tilføj vare til '+cat);plus.setAttribute('aria-expanded','false');
+ const order=el('div','v156-order');const position=names.indexOf(cat);
+ const move=(step)=>{const other=names[position+step];if(!other)return;ensure(cat);ensure(other);const a=categories.indexOf(cat),b=categories.indexOf(other);if(a<0||b<0)return;[categories[a],categories[b]]=[categories[b],categories[a]];save(CAT,categories);draw()};
+ const up=button('↑',()=>move(-1),'v156-move');up.disabled=position===0;up.setAttribute('aria-label','Flyt '+cat+' op');
+ const down=button('↓',()=>move(1),'v156-move');down.disabled=position===names.length-1;down.setAttribute('aria-label','Flyt '+cat+' ned');
+ order.append(up,down);header.append(h,order,plus);section.append(header);
  for(const item of items.filter(x=>catOf(x)===cat)){const row=el('div','simple-item'+(item.done?' done':''));const check=el('input');check.type='checkbox';check.checked=!!item.done;check.onchange=()=>{item.done=check.checked;persist()};const label=el('span','',item.title);const del=button('×',()=>{items=items.filter(x=>x.id!==item.id);persist()});del.setAttribute('aria-label','Slet '+item.title);const saveBtn=button('☆',()=>addToStandard(item),'v155-save');saveBtn.setAttribute('aria-label','Gem '+item.title+' på standardliste');row.append(check,label,saveBtn,del);section.append(row)}
- section.append(addForm(cat,'Tilføj til '+cat,name=>addItem(name,cat)));root.append(section)}
+ const inline=addForm(cat,'Ny vare i '+cat,name=>{addItem(name,cat)});inline.classList.add('v156-inline-add');inline.hidden=true;section.append(inline);root.append(section)}
  const extra=el('div','v154-quick');extra.append(el('h3','','Tilføj en vare'));const f=el('form','v154-add');const input=field('Hvad mangler I?');const sel=el('select');[...categories,'Øvrige'].filter((x,i,a)=>a.indexOf(x)===i).forEach(c=>{const opt=el('option','',c);opt.value=c;sel.append(opt)});sel.value='Øvrige';const add=el('button','','+');add.type='submit';f.append(input,sel,add);f.onsubmit=e=>{e.preventDefault();if(input.value.trim())addItem(input.value,sel.value)};extra.append(f);root.append(extra)
 }
 function drawTemplate(cat){note.textContent='Standardliste · vælg de varer, I mangler, og tilføj dem til indkøbslisten';const names=templates[cat]||[];const section=el('section','v154-standard');const head=el('div','v153-head');head.append(el('h3','',cat),button('✎ Rediger navn',()=>renameCategory(cat),'v153-btn'));section.append(head);
@@ -3466,4 +3471,12 @@ form.onsubmit=e=>e.preventDefault();draw();
 .v155-heading-plus{border:0;background:#e0e9dc;color:#617f64;border-radius:10px;font-size:25px;font-weight:500;width:39px;height:37px;flex:none;cursor:pointer}
 .v155-save{border:0;background:transparent;color:#7f987b;font-size:24px;line-height:1;padding:4px 8px;flex:none;cursor:pointer}
 .v155-category-select{width:100%;padding:12px;border:1px solid #d5d7ce;border-radius:10px;background:#fffdf9;color:#634d41;font:inherit;margin-top:12px}
+</style><style>
+/* v156: only show inline category input after header +; reorder store sections */
+.v156-inline-add[hidden]{display:none!important}
+.v156-inline-add{margin:10px 0 12px}
+.v156-order{display:flex;align-items:center;gap:4px;margin-left:auto}
+.v156-move{border:1px solid #d9dfd3;background:#f8f9f4;color:#6b846d;border-radius:9px;width:32px;height:34px;font-size:20px;line-height:1;cursor:pointer}
+.v156-move:disabled{opacity:.25;cursor:default}
+.v155-group-header{gap:8px}
 </style></body></html>

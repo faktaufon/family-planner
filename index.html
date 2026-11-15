@@ -3430,19 +3430,18 @@ function dialog(title,build){modal.replaceChildren();modal.append(el('h3','',tit
 function actions(d,ok,fn){const a=el('div','v153-dialog-actions');a.append(button('Annuller',()=>modal.close()),button(ok,fn,'v153-btn primary'));d.append(a)}
 function createCategory(){dialog('Ny standardliste',d=>{const i=field('Fx Husholdning');d.append(i);actions(d,'Opret',()=>{const name=i.value.trim();if(!name)return;if(categories.some(x=>x.toLocaleLowerCase('da')===name.toLocaleLowerCase('da'))){alert('Overskriften findes allerede');return}ensure(name);templates[name]=templates[name]||[];save(TPL,templates);modal.close();active=name;draw()});setTimeout(()=>i.focus(),40)})}
 function renameCategory(old){dialog('Rediger overskrift',d=>{const i=field('Overskrift',old);d.append(i);actions(d,'Gem',()=>{const name=i.value.trim();if(!name)return;if(name!==old&&categories.some(x=>x.toLocaleLowerCase('da')===name.toLocaleLowerCase('da'))){alert('Overskriften findes allerede');return}categories=categories.map(x=>x===old?name:x);items.forEach(x=>{if(catOf(x)===old)x.category=name});if(templates[old]){templates[name]=[...(templates[name]||[]),...templates[old]];if(name!==old)delete templates[old]}save(CAT,categories);save(TPL,templates);save(KEY,items);if(active===old)active=name;modal.close();draw()})})}
+function inAnyStandard(item){
+ const name=item.title.trim().toLocaleLowerCase('da');
+ return Object.values(templates).some(list=>Array.isArray(list)&&list.some(x=>String(x).trim().toLocaleLowerCase('da')===name));
+}
 function addToStandard(item){
- dialog('Gem på standardliste',d=>{
-  d.append(el('p','v153-note','Gem "'+item.title+'" på en standardliste, så varen er nem at vælge næste gang.'));
-  const sel=el('select','v155-category-select');
-  categories.forEach(cat=>{const opt=el('option','',cat);opt.value=cat;sel.append(opt)});
-  sel.value=categories.includes(catOf(item))?catOf(item):categories[0];d.append(sel);
-  actions(d,'Gem vare',()=>{
-   const cat=sel.value;if(!cat)return;
-   templates[cat]=templates[cat]||[];
-   if(!templates[cat].some(x=>x.toLocaleLowerCase('da')===item.title.trim().toLocaleLowerCase('da'))){templates[cat].push(item.title.trim());save(TPL,templates)}
-   modal.close();draw();
-  });
- });
+ const cat=catOf(item);
+ if(inAnyStandard(item))return;
+ ensure(cat);
+ templates[cat]=templates[cat]||[];
+ templates[cat].push(item.title.trim());
+ save(TPL,templates);
+ draw();
 }
 function editShoppingItem(item){
  dialog('Rediger vare',d=>{
@@ -3464,7 +3463,7 @@ function drawCurrent(){note.textContent='Aktuel indkøbsliste · kryds af, når 
  const up=button('↑',()=>move(-1),'v156-move');up.disabled=position===0;up.setAttribute('aria-label','Flyt '+cat+' op');
  const down=button('↓',()=>move(1),'v156-move');down.disabled=position===names.length-1;down.setAttribute('aria-label','Flyt '+cat+' ned');
  order.append(up,down);header.append(h,order,plus);section.append(header);
- for(const item of items.filter(x=>catOf(x)===cat)){const row=el('div','simple-item'+(item.done?' done':''));const check=el('input');check.type='checkbox';check.checked=!!item.done;check.onchange=()=>{item.done=check.checked;persist()};const label=button(item.title+(Number(item.quantity)>1?' · '+item.quantity+' stk.':''),()=>editShoppingItem(item),'v157-item-label');label.setAttribute('aria-label','Rediger '+item.title+' og antal');const del=button('×',()=>{items=items.filter(x=>x.id!==item.id);persist()});del.setAttribute('aria-label','Slet '+item.title);const saveBtn=button('☆',()=>addToStandard(item),'v155-save');saveBtn.setAttribute('aria-label','Gem '+item.title+' på standardliste');row.append(check,label,saveBtn,del);section.append(row)}
+ for(const item of items.filter(x=>catOf(x)===cat)){const row=el('div','simple-item'+(item.done?' done':''));const check=el('input');check.type='checkbox';check.checked=!!item.done;check.onchange=()=>{item.done=check.checked;persist()};const label=button(item.title+(Number(item.quantity)>1?' · '+item.quantity+' stk.':''),()=>editShoppingItem(item),'v157-item-label');label.setAttribute('aria-label','Rediger '+item.title+' og antal');const del=button('×',()=>{items=items.filter(x=>x.id!==item.id);persist()});del.setAttribute('aria-label','Slet '+item.title);row.append(check,label);if(!inAnyStandard(item)){const saveBtn=button('☆',()=>addToStandard(item),'v155-save');saveBtn.setAttribute('aria-label','Gem '+item.title+' automatisk under '+cat+' i standardlister');row.append(saveBtn)}row.append(del);section.append(row)}
  const inline=addForm(cat,'Ny vare i '+cat,name=>{addItem(name,cat)});inline.classList.add('v156-inline-add');inline.hidden=true;section.append(inline);root.append(section)}
  const extra=el('div','v154-quick');extra.append(el('h3','','Tilføj en vare'));const f=el('form','v154-add');const input=field('Hvad mangler I?');const sel=el('select');[...categories,'Øvrige'].filter((x,i,a)=>a.indexOf(x)===i).forEach(c=>{const opt=el('option','',c);opt.value=c;sel.append(opt)});sel.value='Øvrige';const add=el('button','','+');add.type='submit';f.append(input,sel,add);f.onsubmit=e=>{e.preventDefault();if(input.value.trim())addItem(input.value,sel.value)};extra.append(f);root.append(extra)
 }

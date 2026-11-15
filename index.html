@@ -3424,14 +3424,28 @@ function dialog(title,build){modal.replaceChildren();modal.append(el('h3','',tit
 function actions(d,ok,fn){const a=el('div','v153-dialog-actions');a.append(button('Annuller',()=>modal.close()),button(ok,fn,'v153-btn primary'));d.append(a)}
 function createCategory(){dialog('Ny standardliste',d=>{const i=field('Fx Husholdning');d.append(i);actions(d,'Opret',()=>{const name=i.value.trim();if(!name)return;if(categories.some(x=>x.toLocaleLowerCase('da')===name.toLocaleLowerCase('da'))){alert('Overskriften findes allerede');return}ensure(name);templates[name]=templates[name]||[];save(TPL,templates);modal.close();active=name;draw()});setTimeout(()=>i.focus(),40)})}
 function renameCategory(old){dialog('Rediger overskrift',d=>{const i=field('Overskrift',old);d.append(i);actions(d,'Gem',()=>{const name=i.value.trim();if(!name)return;if(name!==old&&categories.some(x=>x.toLocaleLowerCase('da')===name.toLocaleLowerCase('da'))){alert('Overskriften findes allerede');return}categories=categories.map(x=>x===old?name:x);items.forEach(x=>{if(catOf(x)===old)x.category=name});if(templates[old]){templates[name]=[...(templates[name]||[]),...templates[old]];if(name!==old)delete templates[old]}save(CAT,categories);save(TPL,templates);save(KEY,items);if(active===old)active=name;modal.close();draw()})})}
+function addToStandard(item){
+ dialog('Gem på standardliste',d=>{
+  d.append(el('p','v153-note','Gem "'+item.title+'" på en standardliste, så varen er nem at vælge næste gang.'));
+  const sel=el('select','v155-category-select');
+  categories.forEach(cat=>{const opt=el('option','',cat);opt.value=cat;sel.append(opt)});
+  sel.value=categories.includes(catOf(item))?catOf(item):categories[0];d.append(sel);
+  actions(d,'Gem vare',()=>{
+   const cat=sel.value;if(!cat)return;
+   templates[cat]=templates[cat]||[];
+   if(!templates[cat].some(x=>x.toLocaleLowerCase('da')===item.title.trim().toLocaleLowerCase('da'))){templates[cat].push(item.title.trim());save(TPL,templates)}
+   modal.close();draw();
+  });
+ });
+}
 function addItem(title,cat){title=title.trim();if(!title)return;ensure(cat);items.push({id:Date.now()+Math.random(),title,done:false,category:cat});persist()}
 function addForm(cat,placeholder,onAdd){const f=el('form','v154-add');const i=field(placeholder),b=el('button','','+');b.type='submit';b.setAttribute('aria-label','Tilføj vare');f.append(i,b);f.onsubmit=e=>{e.preventDefault();const name=i.value.trim();if(!name)return;onAdd(name);i.value=''};return f}
 function drawTabs(){nav.replaceChildren();nav.append(button('Indkøbsliste',()=>{active='current';draw()},'v154-tab'+(active==='current'?' selected':'')));categories.forEach(cat=>nav.append(button(cat,()=>{active=cat;draw()},'v154-tab'+(active===cat?' selected':''))));nav.append(button('+ Ny liste',createCategory,'v154-tab v154-new'))}
 function drawCurrent(){note.textContent='Aktuel indkøbsliste · kryds af, når varen er i kurven';root.append(el('div','v154-count',`${items.filter(x=>x.done).length} af ${items.length} varer i kurven`));
  const names=[...categories.filter(cat=>items.some(x=>catOf(x)===cat)),...new Set(items.map(catOf).filter(cat=>!categories.includes(cat)))];
  if(!names.length)root.append(el('p','v153-empty','Indkøbslisten er tom. Vælg varer fra en standardliste ovenfor, eller tilføj en vare nedenfor.'));
- for(const cat of names){const section=el('section','v154-current-group');const h=el('h3','v154-group-title',cat);section.append(h);
- for(const item of items.filter(x=>catOf(x)===cat)){const row=el('div','simple-item'+(item.done?' done':''));const check=el('input');check.type='checkbox';check.checked=!!item.done;check.onchange=()=>{item.done=check.checked;persist()};const label=el('span','',item.title);const del=button('×',()=>{items=items.filter(x=>x.id!==item.id);persist()});del.setAttribute('aria-label','Slet '+item.title);row.append(check,label,del);section.append(row)}
+ for(const cat of names){const section=el('section','v154-current-group');const header=el('div','v155-group-header');const h=el('h3','v154-group-title',cat);const plus=button('+',()=>{const field=section.querySelector('.v154-add input');if(field){field.focus();field.scrollIntoView({block:'nearest',behavior:'smooth'})}},'v155-heading-plus');plus.setAttribute('aria-label','Tilføj vare til '+cat);header.append(h,plus);section.append(header);
+ for(const item of items.filter(x=>catOf(x)===cat)){const row=el('div','simple-item'+(item.done?' done':''));const check=el('input');check.type='checkbox';check.checked=!!item.done;check.onchange=()=>{item.done=check.checked;persist()};const label=el('span','',item.title);const del=button('×',()=>{items=items.filter(x=>x.id!==item.id);persist()});del.setAttribute('aria-label','Slet '+item.title);const saveBtn=button('☆',()=>addToStandard(item),'v155-save');saveBtn.setAttribute('aria-label','Gem '+item.title+' på standardliste');row.append(check,label,saveBtn,del);section.append(row)}
  section.append(addForm(cat,'Tilføj til '+cat,name=>addItem(name,cat)));root.append(section)}
  const extra=el('div','v154-quick');extra.append(el('h3','','Tilføj en vare'));const f=el('form','v154-add');const input=field('Hvad mangler I?');const sel=el('select');[...categories,'Øvrige'].filter((x,i,a)=>a.indexOf(x)===i).forEach(c=>{const opt=el('option','',c);opt.value=c;sel.append(opt)});sel.value='Øvrige';const add=el('button','','+');add.type='submit';f.append(input,sel,add);f.onsubmit=e=>{e.preventDefault();if(input.value.trim())addItem(input.value,sel.value)};extra.append(f);root.append(extra)
 }
@@ -3445,4 +3459,11 @@ function draw(){drawTabs();root.replaceChildren();if(active!=='current'&&!catego
 form.onsubmit=e=>e.preventDefault();draw();
 })();
 </script>
-</body></html>
+<style>
+/* v155: quick-save current items to templates; add button beside category title */
+.v155-group-header{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #dedbd3;margin-bottom:6px}
+.v155-group-header .v154-group-title{border:0;margin:0;flex:1}
+.v155-heading-plus{border:0;background:#e0e9dc;color:#617f64;border-radius:10px;font-size:25px;font-weight:500;width:39px;height:37px;flex:none;cursor:pointer}
+.v155-save{border:0;background:transparent;color:#7f987b;font-size:24px;line-height:1;padding:4px 8px;flex:none;cursor:pointer}
+.v155-category-select{width:100%;padding:12px;border:1px solid #d5d7ce;border-radius:10px;background:#fffdf9;color:#634d41;font:inherit;margin-top:12px}
+</style></body></html>

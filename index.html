@@ -3384,4 +3384,52 @@ function v133AskDeleteLinked(count){
 .v142-fixed-row .v141-fixed-info small{font-size:11px}
 #v100TemplateForm input[name="title"],#v100TemplateForm .v102-color-naming{display:none!important}
 </style>
+<style>
+/* v153: kategoriseret indkøbsliste og genbrugelige standardlister */
+#shoppingPage{background:linear-gradient(135deg,#f1f3e9,#fff9f3 85%)}
+.v153-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 15px}.v153-btn{border:1px solid #c4d0bf;background:#f9faf5;color:#607b62;border-radius:12px;padding:10px 13px;font:inherit;cursor:pointer}.v153-btn.primary{background:#dfe9dc;border-color:#b8c9b4}.v153-cat{background:#fffdf9;border:1px solid #e4e0d7;border-radius:15px;padding:13px;margin:13px 0}.v153-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#668069;font-weight:700;font-size:17px;margin-bottom:5px}.v153-head button{border:0;background:transparent;color:#a28b7b;font-size:18px}.v153-add{display:flex;gap:8px;margin-top:10px}.v153-add input,.v153-dialog input{flex:1;min-width:0;border:1px solid #d5d7ce;border-radius:10px;padding:11px;background:#fff}.v153-add button{border:1px solid #b8c9b4;border-radius:10px;background:#e5eee2;color:#607b62;padding:8px 13px}.v153-empty{color:#9a9388;font-size:13px;padding:7px 0}.v153-dialog{border:1px solid #d8d5cb;border-radius:18px;padding:20px;width:min(94vw,450px);max-height:85dvh;overflow:auto;background:#fffdf8;color:#634d41;box-shadow:0 15px 60px #30251b33}.v153-dialog::backdrop{background:#2c302955}.v153-dialog h3{margin:0 0 13px;color:#607b62}.v153-dialog label{display:block;margin:12px 0 5px}.v153-dialog input{width:100%;box-sizing:border-box}.v153-dialog-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:16px}.v153-template-row{display:flex;align-items:center;gap:9px;padding:9px 2px;border-bottom:1px solid #ece8df}.v153-template-row input{width:20px;height:20px;accent-color:#8ca78a}.v153-template-row span{flex:1}.v153-template-row button{border:0;background:transparent;color:#a38b80;font-size:20px}.v153-template-cat{border:1px solid #e4e0d7;border-radius:12px;padding:12px;margin:12px 0;background:#fff}.v153-template-cat h4{margin:0 0 8px;color:#668069}.v153-note{font-size:13px;color:#94877a}.v153-quick{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}.v153-quick select{border:1px solid #d5d7ce;border-radius:10px;padding:10px;background:#fffdfb;color:#634d41;max-width:100%}
+</style>
+<script>
+/* v153 – Indkøb: standardkategorier, kategoriseret aktuel liste, flueben og slet */
+(function(){
+const page=document.getElementById('shoppingPage'),root=document.getElementById('shoppingItems'),oldForm=document.getElementById('shoppingForm');
+if(!page||!root||!oldForm)return;
+const KEY='familyPlannerShopping',CATKEY='familyPlannerShoppingCategories',TPLKEY='familyPlannerShoppingTemplates';
+const read=(k,f)=>{try{const x=JSON.parse(localStorage.getItem(k));return x==null?f:x}catch(e){return f}};
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+let items=read(KEY,[]),categories=read(CATKEY,[]),templates=read(TPLKEY,{});
+const defaults=['Husholdning','Madpakker','Morgenmad','Frugt & grønt'];
+if(!categories.length){categories=defaults.slice();save(CATKEY,categories)}
+const catOf=x=>x.category||'Øvrige';
+const ensureCategory=name=>{name=(name||'').trim();if(!name)return false;if(!categories.some(c=>c.toLocaleLowerCase('da')===name.toLocaleLowerCase('da'))){categories.push(name);save(CATKEY,categories)}return true};
+const persist=()=>{save(KEY,items);draw()};
+const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e};
+const btn=(text,fn,cls='v153-btn')=>{const b=el('button',cls,text);b.type='button';b.onclick=fn;return b};
+const modal=el('dialog','v153-dialog');page.append(modal);
+const close=()=>modal.close();
+function showModal(title,build){modal.replaceChildren();modal.append(el('h3','',title));build(modal);if(!modal.open)modal.showModal()}
+function input(placeholder,value=''){const i=el('input');i.placeholder=placeholder;i.value=value;i.maxLength=120;return i}
+function addCategory(){showModal('Ny kategori',d=>{const i=input('Navn på kategorien');d.append(i);const a=el('div','v153-dialog-actions');a.append(btn('Annuller',close),btn('Opret',()=>{const name=i.value.trim();if(!name)return;ensureCategory(name);close();draw()},'v153-btn primary'));d.append(a);setTimeout(()=>i.focus(),40);i.onkeydown=e=>{if(e.key==='Enter')a.lastChild.click()}})}
+function editCategory(old){showModal('Rediger kategori',d=>{const i=input('Kategori',old);d.append(i);const a=el('div','v153-dialog-actions');a.append(btn('Annuller',close),btn('Gem',()=>{const n=i.value.trim();if(!n)return;if(n!==old&&categories.some(c=>c.toLocaleLowerCase('da')===n.toLocaleLowerCase('da')))return alert('Kategorien findes allerede');categories=categories.map(c=>c===old?n:c);items.forEach(x=>{if(catOf(x)===old)x.category=n});if(templates[old]){templates[n]=[...(templates[n]||[]),...templates[old]];delete templates[old]}save(CATKEY,categories);save(TPLKEY,templates);close();persist()},'v153-btn primary'));d.append(a)})}
+function addItem(title,cat){title=title.trim();if(!title)return;ensureCategory(cat);items.push({id:Date.now()+Math.random(),title,done:false,category:cat});persist()}
+function draw(){root.replaceChildren();const counter=el('div','v153-note',`${items.filter(x=>x.done).length} af ${items.length} varer i kurven`);root.append(counter);
+const names=[...categories,...new Set(items.map(catOf).filter(c=>!categories.includes(c)))];
+for(const cat of names){const list=items.filter(x=>catOf(x)===cat);const box=el('section','v153-cat');const head=el('div','v153-head');head.append(el('span','',cat));head.append(btn('✎',()=>editCategory(cat)));box.append(head);
+if(!list.length)box.append(el('div','v153-empty','Ingen varer på listen'));
+for(const item of list){const row=el('div','simple-item'+(item.done?' done':''));const check=el('input');check.type='checkbox';check.checked=!!item.done;check.onchange=()=>{item.done=check.checked;persist()};const label=el('span','',item.title);const del=btn('×',()=>{items=items.filter(x=>x.id!==item.id);persist()},'');del.setAttribute('aria-label','Slet '+item.title);row.append(check,label,del);box.append(row)}
+const form=el('form','v153-add');const field=input('Tilføj vare til '+cat);const add=el('button','', '+');add.type='submit';add.setAttribute('aria-label','Tilføj vare');form.append(field,add);form.onsubmit=e=>{e.preventDefault();if(field.value.trim())addItem(field.value,cat)};box.append(form);root.append(box)}
+}
+oldForm.style.display='none';const bar=el('div','v153-toolbar');bar.append(btn('☑ Standardlister',openTemplates,'v153-btn primary'),btn('+ Ny kategori',addCategory));oldForm.after(bar);
+function openTemplates(){showModal('Standardlister',d=>{
+ d.append(el('p','v153-note','Vælg de varer, I mangler. Varerne tilføjes under deres kategori på den aktuelle indkøbsliste.'));
+ const selections=new Set();const content=el('div');d.append(content);
+ function renderTemplates(){content.replaceChildren();for(const cat of categories){const wrap=el('section','v153-template-cat');const h=el('h4','',cat);wrap.append(h);const names=templates[cat]||[];
+ for(const name of names){const row=el('div','v153-template-row');const check=el('input');check.type='checkbox';const key=cat+'\u0000'+name;const exists=items.some(x=>catOf(x)===cat&&x.title.trim().toLocaleLowerCase('da')===name.trim().toLocaleLowerCase('da'));check.checked=exists||selections.has(key);check.disabled=exists;check.onchange=()=>{if(check.checked)selections.add(key);else selections.delete(key);updateButton()};row.append(check,el('span','',name));if(exists)row.append(el('small','v153-note','På listen'));row.append(btn('×',()=>{templates[cat]=names.filter(x=>x!==name);selections.delete(key);save(TPLKEY,templates);renderTemplates()},''));wrap.append(row)}
+ const form=el('form','v153-add');const field=input('Ny standardvare');const add=el('button','','+');add.type='submit';form.append(field,add);form.onsubmit=e=>{e.preventDefault();const n=field.value.trim();if(!n)return;if(!templates[cat])templates[cat]=[];if(!templates[cat].some(x=>x.toLocaleLowerCase('da')===n.toLocaleLowerCase('da'))){templates[cat].push(n);save(TPLKEY,templates)}renderTemplates()};wrap.append(form);content.append(wrap)}updateButton()}
+ const actions=el('div','v153-dialog-actions');const addSelected=btn('Tilføj valgte varer',()=>{for(const key of selections){const [cat,name]=key.split('\u0000');if(!items.some(x=>catOf(x)===cat&&x.title.trim().toLocaleLowerCase('da')===name.trim().toLocaleLowerCase('da')))items.push({id:Date.now()+Math.random(),title:name,done:false,category:cat})}close();persist()},'v153-btn primary');const updateButton=()=>{addSelected.textContent='Tilføj '+selections.size+' valgte varer';addSelected.disabled=selections.size===0};actions.append(btn('Luk',close),addSelected);d.append(actions);renderTemplates()
+ })}
+// Overstyr den gamle formular uden at ændre andre funktioner i appen.
+oldForm.onsubmit=e=>{e.preventDefault()};draw();
+})();
+</script>
 </body></html>

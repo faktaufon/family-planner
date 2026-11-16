@@ -3483,8 +3483,33 @@ function editShoppingItem(item){
 }
 function addItem(title,cat){title=title.trim();if(!title)return;ensure(cat);items.push({id:Date.now()+Math.random(),title,done:false,category:cat});persist()}
 function addForm(cat,placeholder,onAdd){const f=el('form','v154-add');const i=field(placeholder),b=el('button','','+');b.type='submit';b.setAttribute('aria-label','Tilføj vare');f.append(i,b);f.onsubmit=e=>{e.preventDefault();const name=i.value.trim();if(!name)return;onAdd(name);i.value=''};return f}
-function drawTabs(){nav.replaceChildren();nav.append(button('Indkøbsliste · '+items.length,()=>{active='current';draw()},'v154-tab v160-current'+(active==='current'?' selected':'')));categories.forEach(cat=>nav.append(button(cat,()=>{active=cat;draw()},'v154-tab'+(active===cat?' selected':''))));nav.append(button('+ Ny liste',createCategory,'v154-tab v154-new'))}
-function drawCurrent(){note.textContent='Sæt flueben ved fundne varer · ændr antal med − og + · stryg mod venstre for at slette';root.append(el('div','v154-count',`${items.filter(x=>x.done).length} af ${items.length} varer i kurven`));
+let listsOpen=false;
+function drawTabs(){
+ nav.replaceChildren();
+ const top=el('div','v162-top');
+ top.append(button('Indkøbsliste',()=>{active='current';listsOpen=false;draw()},'v154-tab v160-current'+(active==='current'?' selected':'')));
+ top.append(el('span','v162-progress',items.filter(x=>x.done).length+'/'+items.length));
+ nav.append(top);
+ const toggle=button('Standardlister '+(listsOpen?'⌃':'⌄'),()=>{listsOpen=!listsOpen;drawTabs()},'v162-list-toggle');nav.append(toggle);
+ if(listsOpen){const panel=el('div','v162-list-panel');categories.forEach(cat=>panel.append(button(cat,()=>{active=cat;listsOpen=false;draw()},'v154-tab'+(active===cat?' selected':''))));panel.append(button('+ Ny liste',()=>{listsOpen=false;createCategory()},'v154-tab v154-new'));nav.append(panel)}
+}
+function editQuantity(item){
+ dialog('Antal · '+item.title,d=>{
+ const qty=el('input','v162-qty-input');qty.type='text';qty.inputMode='none';qty.readOnly=true;qty.value=String(Math.max(1,Number(item.quantity)||1));d.append(qty);
+ let fresh=true;
+ const grid=el('div','v162-keypad');
+ for(const digit of ['1','2','3','4','5','6','7','8','9','⌫','0','OK']){
+  grid.append(button(digit,()=>{
+   if(digit==='OK'){const n=Number(qty.value);if(Number.isInteger(n)&&n>=1&&n<=9999){item.quantity=n;modal.close();persist()}return}
+   if(digit==='⌫'){qty.value=fresh?'':qty.value.slice(0,-1);fresh=false;return}
+   qty.value=fresh?digit:(qty.value+digit).slice(0,4);fresh=false;
+  },'v162-key'+(digit==='OK'?' v162-key-ok':'')));
+ }
+ d.append(grid);d.append(button('Annuller',()=>modal.close(),'v162-cancel'));
+ });
+}
+
+function drawCurrent(){note.textContent='Sæt flueben, når varen er fundet · tryk på antal for at ændre · stryg mod venstre for at slette';
  const names=[...categories.filter(cat=>items.some(x=>catOf(x)===cat)),...new Set(items.map(catOf).filter(cat=>!categories.includes(cat)))];
  if(!names.length)root.append(el('p','v153-empty','Indkøbslisten er tom. Vælg varer fra en standardliste ovenfor, eller tilføj en vare nedenfor.'));
  for(const cat of names){const section=el('section','v154-current-group');const header=el('div','v155-group-header');const h=el('h3','v154-group-title',cat);const plus=button('+',()=>{const f=section.querySelector('.v156-inline-add');if(!f)return;const open=f.hidden;f.hidden=!open;plus.setAttribute('aria-expanded',String(open));if(open){const input=f.querySelector('input');input.focus();f.scrollIntoView({block:'nearest',behavior:'smooth'})}},'v155-heading-plus');plus.setAttribute('aria-label','Tilføj vare til '+cat);plus.setAttribute('aria-expanded','false');
@@ -3497,9 +3522,7 @@ function drawCurrent(){note.textContent='Sæt flueben ved fundne varer · ændr 
  const shell=el('div','v160-swipe-shell');const row=el('div','simple-item v160-swipe-row');
  const check=button(item.done?'✓':'',()=>{item.done=!item.done;persist()},'v161-check');check.setAttribute('aria-label',(item.done?'Fjern flueben ved ':'Marker fundet: ')+item.title);check.setAttribute('aria-pressed',String(!!item.done));
  const label=button(item.title,()=>editShoppingItem(item),'v157-item-label');label.setAttribute('aria-label','Rediger '+item.title);
- const quantity=el('div','v161-quantity');const minus=button('−',()=>{item.quantity=Math.max(1,(Number(item.quantity)||1)-1);persist()},'v161-step');minus.setAttribute('aria-label','Færre '+item.title);minus.disabled=(Number(item.quantity)||1)<=1;
- const value=el('span','v161-value',String(Math.max(1,Number(item.quantity)||1)));value.setAttribute('aria-label','Antal');
- const plusQty=button('+',()=>{item.quantity=Math.min(9999,(Number(item.quantity)||1)+1);persist()},'v161-step');plusQty.setAttribute('aria-label','Flere '+item.title);quantity.append(minus,value,plusQty);
+ const quantity=button(String(Math.max(1,Number(item.quantity)||1))+' stk.',()=>editQuantity(item),'v162-quantity');quantity.setAttribute('aria-label','Ændr antal for '+item.title);
  const del=button('🗑',()=>{items=items.filter(x=>x.id!==item.id);persist()},'v160-trash');del.setAttribute('aria-label','Slet '+item.title);
  row.append(check,label,quantity);if(!inAnyStandard(item)){const saveBtn=button('☆',()=>addToStandard(item),'v155-save');saveBtn.setAttribute('aria-label','Gem '+item.title+' under '+cat+' i standardlister');row.append(saveBtn)}
  shell.append(del,row);let startX=0,startY=0;
@@ -3542,4 +3565,36 @@ form.onsubmit=e=>e.preventDefault();draw();
 .v157-edit-label{display:flex;flex-direction:column;gap:6px;margin:12px 0;color:#687f65;font-weight:600;font-size:14px}
 .v157-edit-label input{width:100%;box-sizing:border-box;background:#fffdf9;border:1px solid #d7d8cc;border-radius:10px;padding:12px;color:#66564a;font:inherit;font-weight:400}
 .v157-qty-input{max-width:160px}
-</style><script id="v160-no-pinch">(function(){function shoppingOpen(){return document.body.classList.contains('list-open')&&document.body.dataset.page==='shopping'}document.addEventListener('touchmove',function(e){if(shoppingOpen()&&e.touches.length>1)e.preventDefault()},{passive:false});document.addEventListener('gesturestart',function(e){if(shoppingOpen())e.preventDefault()},{passive:false});})();</script></body></html>
+</style><script id="v160-no-pinch">(function(){function shoppingOpen(){return document.body.classList.contains('list-open')&&document.body.dataset.page==='shopping'}document.addEventListener('touchmove',function(e){if(shoppingOpen()&&e.touches.length>1)e.preventDefault()},{passive:false});document.addEventListener('gesturestart',function(e){if(shoppingOpen())e.preventDefault()},{passive:false});})();</script><style id="v162-shopping-design">
+#shoppingPage{background:#faf7f0!important;color:#62483d!important}
+#shoppingPage .v160-nav{display:flex!important;flex-direction:column!important;gap:9px!important;background:#fffaf5!important;border:1px solid #f0e4df!important;border-radius:18px!important;padding:13px!important;box-shadow:none!important}
+#shoppingPage .v162-top{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+#shoppingPage .v160-nav .v160-current{flex:1!important;grid-column:auto!important;min-height:0!important;text-align:left!important;font:600 22px Georgia,serif!important;color:#62483d!important;background:transparent!important;border:0!important;box-shadow:none!important;padding:4px!important}
+#shoppingPage .v162-progress{background:#f6e6e5;border-radius:22px;padding:7px 12px;font:600 15px system-ui,sans-serif;color:#62483d;white-space:nowrap}
+#shoppingPage .v162-list-toggle{width:100%;background:#f8e8e7;border:1px solid #e9cfce;border-radius:12px;padding:12px;color:#62483d;font:600 15px system-ui,sans-serif}
+#shoppingPage .v162-list-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;width:100%}
+#shoppingPage .v162-list-panel .v154-tab{grid-column:auto!important;flex:auto!important;width:100%!important;font:500 13px system-ui,sans-serif!important;background:#fffaf5!important;border:1px solid #e9d9d3!important;color:#62483d!important;padding:10px 4px!important;min-width:0!important}
+#shoppingPage .v154-context{font-size:12px!important;color:#9a8178!important;margin:9px 0 16px!important}
+#shoppingPage .v154-current-group{background:transparent!important}
+#shoppingPage .v155-group-header{border-bottom:1px solid #eaded8!important}
+#shoppingPage .v154-group-title{color:#62483d!important;font-size:20px!important}
+#shoppingPage .v155-heading-plus{background:#f5e3e2!important;color:#62483d!important}
+#shoppingPage .v156-move{color:#8b7267!important;background:#fffaf5!important;border-color:#e9dcd5!important}
+#shoppingPage .v160-swipe-shell{margin:3px 0!important;border-radius:12px!important}
+#shoppingPage .v160-swipe-row{background:#fffdfa!important;border:1px solid #f0e8e1!important;border-radius:12px!important;min-height:59px!important;gap:8px!important;padding:7px 9px!important}
+#shoppingPage .v157-item-label{font:500 clamp(16px,4.3vw,19px)/1.25 system-ui,sans-serif!important;color:#62483d!important;opacity:1!important;text-decoration:none!important;min-width:0!important}
+#shoppingPage .simple-item.done .v157-item-label{text-decoration:none!important;opacity:1!important}
+#shoppingPage .v161-check{width:31px!important;height:32px!important;flex:0 0 31px!important;border:1.5px solid #d9b9b8!important;border-radius:9px!important;background:#fffdfa!important;color:#fff!important}
+#shoppingPage .v161-check[aria-pressed="true"]{background:#d7a3a4!important;border-color:#d7a3a4!important}
+#shoppingPage .v162-quantity{flex:0 0 auto;border:1px solid #ebd7d4;background:#faeeee;color:#62483d;border-radius:10px;min-width:58px;padding:9px 7px;font:600 13px system-ui,sans-serif;white-space:nowrap}
+#shoppingPage .v155-save{color:#c59c9b!important;font-size:20px!important;padding:3px!important}
+#shoppingPage .v160-trash{background:#c77b7c!important}
+#shoppingPage .v153-dialog{background:#fffaf5!important;color:#62483d!important;border-color:#ebd8d4!important}
+#shoppingPage .v153-dialog h3{color:#62483d!important}
+#shoppingPage .v162-qty-input{display:block;width:100%;padding:14px;text-align:center;font:600 30px system-ui,sans-serif;color:#62483d;background:#fff;border:1px solid #e7c9c7;border-radius:12px;margin:12px 0}
+#shoppingPage .v162-keypad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#shoppingPage .v162-key{background:#f7e8e7;border:1px solid #e8d3d0;border-radius:11px;min-height:51px;font:600 22px system-ui,sans-serif;color:#62483d}
+#shoppingPage .v162-key-ok{background:#d7a3a4;color:#fff}
+#shoppingPage .v162-cancel{display:block;margin:13px auto 0;background:transparent;border:0;color:#856d64;font-size:14px}
+#shoppingPage,#shoppingPage *{max-width:100%;box-sizing:border-box}
+</style></body></html>

@@ -3486,9 +3486,27 @@ function addForm(cat,placeholder,onAdd){const f=el('form','v154-add');const i=fi
 let listsOpen=false;
 function drawTabs(){
  nav.replaceChildren();
- const progress=page.querySelector('.v163-progress');if(progress){progress.textContent=items.filter(x=>x.done).length+'/'+items.length;progress.onclick=()=>{active='current';listsOpen=false;draw()}}
+ const progress=page.querySelector('.v163-progress');if(progress){progress.textContent=items.filter(x=>x.done).length+'/'+items.length;progress.onclick=showMissing}
  const toggle=button('Standardlister '+(listsOpen?'⌃':'⌄'),()=>{listsOpen=!listsOpen;drawTabs()},'v162-list-toggle');nav.append(toggle);
  if(listsOpen){const panel=el('div','v162-list-panel');categories.forEach(cat=>panel.append(button(cat,()=>{active=cat;listsOpen=false;draw()},'v154-tab'+(active===cat?' selected':''))));panel.append(button('+ Ny liste',()=>{listsOpen=false;createCategory()},'v154-tab v154-new'));nav.append(panel)}
+}
+function showMissing(){
+ dialog('Mangler stadig',d=>{
+  const missing=items.filter(x=>!x.done);
+  const heading=modal.querySelector('h3');
+  if(heading)heading.textContent=missing.length?'Mangler stadig '+missing.length+' '+(missing.length===1?'vare':'varer'):'Alt er i kurven ✓';
+  if(!missing.length){d.append(el('p','v165-all-done','I har fundet alle varerne.'));}
+  for(const item of missing){
+   const row=el('div','v165-missing-row');
+   const check=button('','', 'v165-missing-check');
+   check.onclick=()=>{item.done=true;persist();showMissing()};
+   check.setAttribute('aria-label','Marker '+item.title+' som fundet');
+   const name=el('span','v165-missing-name',item.title);
+   const qty=button(String(Math.max(1,Number(item.quantity)||1))+' stk.',()=>editQuantity(item),'v162-quantity');
+   row.append(check,name,qty);d.append(row);
+  }
+  d.append(button('Luk',()=>modal.close(),'v165-missing-close'));
+ });
 }
 function editQuantity(item){
  dialog('Antal · '+item.title,d=>{
@@ -3626,4 +3644,28 @@ form.onsubmit=e=>e.preventDefault();draw();
 #shoppingPage .v160-swipe-row{border:0!important;border-radius:0!important}
 #shoppingPage .v154-current-group .v160-swipe-shell{border-radius:0!important}
 @media(max-width:380px){#shoppingPage .v163-heading{grid-template-columns:45px minmax(0,1fr) auto!important}#shoppingPage .v163-basket{width:45px!important;height:45px!important}}
+</style><style id="v165-picnic-shopping">
+/* v165: same dusty rose as the app, with a single rounded cream shopping-paper card */
+body.list-open[data-page="shopping"] #listBack{display:none!important}
+#shoppingPage{background:#f2e3e1!important;border-radius:25px!important;padding:16px 12px 22px!important;border:1px solid #f0dfdc!important}
+#shoppingPage .v163-heading{grid-template-columns:clamp(76px,22vw,108px) minmax(0,1fr) auto!important;gap:5px!important;padding:6px 0 18px!important}
+#shoppingPage .v163-basket{width:100%!important;height:auto!important;aspect-ratio:1/1!important;mix-blend-mode:normal!important}
+#shoppingPage .v163-heading h2{font-size:clamp(35px,9vw,58px)!important;line-height:1.05!important}
+#shoppingPage .v163-progress{font-size:clamp(13px,3.7vw,17px)!important;padding:9px 12px!important;background:#e6caca!important;cursor:pointer!important;min-height:43px!important}
+#shoppingPage .v160-nav{margin:0 0 12px!important;padding:0!important}
+#shoppingPage .v162-list-toggle{background:#f8eeeb!important;border:1px solid #d9bdb9!important;border-radius:20px!important;color:#62483d!important}
+#shoppingPage #shoppingItems{background:#faf7f0!important;border:1px solid #e3d5ce!important;border-radius:22px!important;padding:13px 12px!important;box-shadow:0 2px 5px #62483d0d!important}
+#shoppingPage .v154-current-group,#shoppingPage .v154-current-group .v160-swipe-shell,#shoppingPage .v160-swipe-row,#shoppingPage .simple-item,#shoppingPage .v154-current-group .simple-item{background:#faf7f0!important}
+#shoppingPage .v160-swipe-row{min-height:62px!important}
+#shoppingPage .v154-current-group{margin-bottom:22px!important}
+#shoppingPage .v160-swipe-shell{border-bottom:1px solid #e4d5ce!important}
+#shoppingPage .v157-item-label{font-weight:500!important;color:#62483d!important}
+#shoppingPage .v153-dialog{background:#faf7f0!important;color:#62483d!important;border-color:#e3c7c3!important}
+#shoppingPage .v153-dialog h3{color:#62483d!important}
+#shoppingPage .v165-missing-row{display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid #e5d5cf}
+#shoppingPage .v165-missing-check{width:32px;height:32px;flex:0 0 32px;border:2px solid #d1a3a2;border-radius:9px;background:#faf7f0}
+#shoppingPage .v165-missing-name{flex:1;min-width:0;font:500 17px/1.35 Montserrat,system-ui,sans-serif}
+#shoppingPage .v165-missing-close{display:block;margin:18px auto 0;padding:11px 30px;background:#edd9d7;border:1px solid #d8b9b6;border-radius:15px;color:#62483d}
+#shoppingPage .v165-all-done{text-align:center;font-size:17px}
+@media(max-width:380px){#shoppingPage{padding:12px 8px 18px!important}#shoppingPage .v163-heading{grid-template-columns:65px minmax(0,1fr) auto!important;gap:3px!important}#shoppingPage .v163-heading h2{font-size:34px!important}#shoppingPage .v163-progress{padding:7px 9px!important;font-size:12px!important}#shoppingPage #shoppingItems{padding:10px 8px!important}}
 </style></body></html>

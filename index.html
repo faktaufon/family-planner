@@ -3485,6 +3485,7 @@ if(!Array.isArray(shoppingLists)||!shoppingLists.length)shoppingLists=[{id:'ever
 let selectedId=read(SELECT,'everyday');if(!shoppingLists.some(x=>x.id===selectedId))selectedId=shoppingLists[0].id;
 let items=shoppingLists.find(x=>x.id===selectedId).items,categories=read(CAT,[]),templates=read(TPL,{}),active='current';
 const currentList=()=>shoppingLists.find(x=>x.id===selectedId);
+const localHeadings=()=>{const list=currentList();if(!Array.isArray(list.headings))list.headings=[];return list.headings};
 const storeLists=()=>{currentList().items=items;save(LISTS,shoppingLists);save(SELECT,selectedId);if(selectedId==='everyday')save(KEY,items)};
 const selectList=id=>{storeLists();selectedId=id;items=currentList().items;active='current';listsOpen=false;shoppingOpen=false;storeLists();draw()};
 if(!categories.length){categories=['Husholdning','Madpakker','Morgenmad','Frugt & grønt'];save(CAT,categories)}
@@ -3524,7 +3525,7 @@ function editShoppingItem(item){
   name.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();qty.focus()}});
  });
 }
-function addItem(title,cat){title=title.trim();if(!title)return;ensure(cat);items.push({id:Date.now()+Math.random(),title,done:false,category:cat});persist()}
+function addItem(title,cat){title=title.trim();if(!title)return;items.push({id:Date.now()+Math.random(),title,done:false,category:cat});persist()}
 function addForm(cat,placeholder,onAdd){const f=el('form','v154-add');const i=field(placeholder),b=el('button','','+');b.type='submit';b.setAttribute('aria-label','Tilføj vare');f.append(i,b);f.onsubmit=e=>{e.preventDefault();const name=i.value.trim();if(!name)return;onAdd(name);i.value=''};return f}
 let listsOpen=false,shoppingOpen=false;
 function newShoppingList(){dialog('Ny indkøbsliste',d=>{const i=field('Fx Fødselsdag');d.append(i);actions(d,'Opret',()=>{const name=i.value.trim();if(!name)return;const id='list-'+Date.now()+'-'+Math.random().toString(36).slice(2,6);storeLists();shoppingLists.push({id,name,items:[]});save(LISTS,shoppingLists);modal.close();selectList(id)});setTimeout(()=>i.focus(),30)})}
@@ -3535,7 +3536,7 @@ function reorderArray(array,from,to){if(from===to||to<0||to>=array.length)return
 function draggable(buttonEl,index,arr,onSave){let timer=null,startY=0,dragging=false;buttonEl.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;timer=setTimeout(()=>{dragging=true;buttonEl.classList.add('v167-dragging')},360)},{passive:true});buttonEl.addEventListener('touchmove',e=>{if(!dragging){if(Math.abs(e.touches[0].clientY-startY)>12)clearTimeout(timer);return}e.preventDefault();const dy=e.touches[0].clientY-startY;const step=Math.round(dy/55);buttonEl.dataset.dragOffset=String(step);buttonEl.style.transform='translateY('+dy+'px)'},{passive:false});buttonEl.addEventListener('touchend',()=>{clearTimeout(timer);if(dragging){const step=Number(buttonEl.dataset.dragOffset||0);reorderArray(arr,index,Math.max(0,Math.min(arr.length-1,index+step)));onSave();setTimeout(()=>{dragging=false},60)}buttonEl.style.transform='';buttonEl.classList.remove('v167-dragging')});buttonEl.addEventListener('touchcancel',()=>{clearTimeout(timer);dragging=false;buttonEl.style.transform=''});buttonEl.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',String(index))});buttonEl.draggable=true;buttonEl.addEventListener('dragover',e=>e.preventDefault());buttonEl.addEventListener('drop',e=>{e.preventDefault();const from=Number(e.dataTransfer.getData('text/plain'));reorderArray(arr,from,index);onSave()})}
 function managerButtons(panel,type){const bar=el('div','v167-manage');const isShopping=type==='shopping';bar.append(button('+ Ny',isShopping?newShoppingList:createCategory,'v167-action'));bar.append(button('✎ Omdøb',isShopping?renameShoppingList:()=>{if(categories.length)chooseCategory('Omdøb standardliste',renameCategory)},'v167-action'));bar.append(button('▤ Slet',isShopping?deleteShoppingList:()=>{if(categories.length)chooseCategory('Slet standardliste',deleteCategory)},'v167-action'));panel.append(bar)}
 function chooseCategory(title,fn){dialog(title,d=>{categories.forEach(cat=>d.append(button(cat,()=>{modal.close();fn(cat)},'v167-picker')))})}
-function newCurrentCategory(){dialog('Ny overskrift',d=>{const name=field('Fx Fødselsdag');const item=field('Første vare (valgfri)');d.append(name,item);actions(d,'Opret',()=>{const cat=name.value.trim();if(!cat)return;ensure(cat);if(item.value.trim())addItem(item.value,cat);else{modal.close();draw();return}modal.close()})})}
+function newCurrentCategory(){dialog('Ny overskrift',d=>{const name=field('Fx Fødselsdag');d.append(name);actions(d,'Opret',()=>{const cat=name.value.trim();if(!cat)return;const headings=localHeadings();if(headings.some(x=>x.toLocaleLowerCase('da')===cat.toLocaleLowerCase('da'))||items.some(x=>catOf(x).toLocaleLowerCase('da')===cat.toLocaleLowerCase('da'))){alert('Overskriften findes allerede på denne indkøbsliste.');return}headings.push(cat);storeLists();modal.close();draw()});setTimeout(()=>name.focus(),30)})}
 function addToCategoryDialog(cat){dialog('Tilføj til '+cat,d=>{const i=field('Hvilken vare mangler?');d.append(i);actions(d,'Tilføj',()=>{if(!i.value.trim())return;modal.close();addItem(i.value,cat)});setTimeout(()=>i.focus(),30)})}
 
 function drawTabs(){
@@ -3589,11 +3590,11 @@ function editQuantity(item){
 }
 
 function drawCurrent(){note.textContent='';const newCat=button('+ Ny overskrift',newCurrentCategory,'v167-new-category');root.append(newCat);
- const names=[...categories.filter(cat=>items.some(x=>catOf(x)===cat)),...new Set(items.map(catOf).filter(cat=>!categories.includes(cat)))];
+ const names=[...new Set([...localHeadings(),...categories.filter(cat=>items.some(x=>catOf(x)===cat)),...items.map(catOf)])];
  if(!names.length)root.append(el('p','v153-empty','Indkøbslisten er tom. Vælg varer fra en standardliste ovenfor, eller tilføj en vare nedenfor.'));
  for(const cat of names){const section=el('section','v154-current-group');const header=el('div','v155-group-header');const h=el('h3','v154-group-title',cat);const plus=button('+',()=>addToCategoryDialog(cat),'v155-heading-plus');plus.setAttribute('aria-label','Tilføj vare til '+cat);plus.setAttribute('aria-expanded','false');
  const order=el('div','v156-order');const position=names.indexOf(cat);
- const move=(step)=>{const other=names[position+step];if(!other)return;ensure(cat);ensure(other);const a=categories.indexOf(cat),b=categories.indexOf(other);if(a<0||b<0)return;[categories[a],categories[b]]=[categories[b],categories[a]];save(CAT,categories);draw()};
+ const move=(step)=>{const other=names[position+step];if(!other)return;const reordered=[...names];[reordered[position],reordered[position+step]]=[reordered[position+step],reordered[position]];currentList().headings=reordered;storeLists();draw()};
  const up=button('↑',()=>move(-1),'v156-move');up.disabled=position===0;up.setAttribute('aria-label','Flyt '+cat+' op');
  const down=button('↓',()=>move(1),'v156-move');down.disabled=position===names.length-1;down.setAttribute('aria-label','Flyt '+cat+' ned');
  order.append(up,down);header.append(h,order,plus);section.append(header);
@@ -3731,4 +3732,11 @@ body.list-open[data-page="shopping"] #listBack{display:none!important}
 #shoppingPage .v165-missing-close{display:block;margin:18px auto 0;padding:11px 30px;background:#edd9d7;border:1px solid #d8b9b6;border-radius:15px;color:#62483d}
 #shoppingPage .v165-all-done{text-align:center;font-size:17px}
 @media(max-width:380px){#shoppingPage{padding:12px 8px 18px!important}#shoppingPage .v163-heading{grid-template-columns:65px minmax(0,1fr) auto!important;gap:3px!important}#shoppingPage .v163-heading h2{font-size:34px!important}#shoppingPage .v163-progress{padding:7px 9px!important;font-size:12px!important}#shoppingPage #shoppingItems{padding:10px 8px!important}}
-</style></body></html>
+</style><style>
+/* v168: Separate list-only headings from reusable standard lists; unify shopping colors */
+#shoppingPage .v153-dialog h3,#shoppingPage .v153-template-cat h4,#shoppingPage .v153-head,#shoppingPage .v157-edit-label,#shoppingPage .v153-note{color:#654b42}
+#shoppingPage .v153-btn,#shoppingPage .v153-btn.primary,#shoppingPage .v153-add button,#shoppingPage .v155-heading-plus,#shoppingPage .v156-move,#shoppingPage .v155-save,#shoppingPage .v154-remove{background:#f0e0de;border-color:#d8bcb8;color:#654b42}
+#shoppingPage .v153-template-row input,#shoppingPage input[type=checkbox]{accent-color:#c99d9e}
+#shoppingPage .v153-dialog input:focus{outline:2px solid #c99d9e;outline-offset:1px}
+</style>
+</body></html>

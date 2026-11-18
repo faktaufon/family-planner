@@ -3547,7 +3547,7 @@ function drawTabs(){
  top.append(button('Standardlister '+(listsOpen?'⌃':'⌄'),()=>{listsOpen=!listsOpen;shoppingOpen=false;drawTabs()},'v162-list-toggle'));
  nav.append(top);
  if(shoppingOpen){const panel=el('div','v162-list-panel v167-list-panel');shoppingLists.forEach((list,index)=>{const b=button('⠿  '+list.name+(list.id===selectedId?'  ✓':''),()=>{if(!b.classList.contains('v167-dragging'))selectList(list.id)},'v154-tab v167-list-button'+(list.id===selectedId?' selected':''));panel.append(b);draggable(b,index,shoppingLists,()=>{storeLists();drawTabs()})});managerButtons(panel,'shopping');nav.append(panel)}
- if(listsOpen){const panel=el('div','v162-list-panel v167-list-panel');categories.forEach((cat,index)=>{const b=button('⠿  '+cat,()=>{if(!b.classList.contains('v167-dragging'))showTemplatePicker(cat)},'v154-tab v167-list-button');panel.append(b);draggable(b,index,categories,()=>{save(CAT,categories);drawTabs()})});managerButtons(panel,'standard');nav.append(panel)}
+ if(listsOpen){const panel=el('div','v162-list-panel v167-list-panel');categories.forEach((cat,index)=>{const b=button('⠿  '+cat,()=>{if(!b.classList.contains('v167-dragging')){active=active===cat?'current':cat;draw()}},'v154-tab v167-list-button');panel.append(b);draggable(b,index,categories,()=>{save(CAT,categories);drawTabs()})});managerButtons(panel,'standard');nav.append(panel)}
 }
 function showTemplatePicker(cat){dialog('Vælg fra '+cat,d=>{
  const names=templates[cat]||[],selected=new Set();const rows=el('div','v167-pick-rows');
@@ -3597,7 +3597,20 @@ function drawCurrent(){note.textContent='';const newCat=button('+ Ny overskrift'
  const move=(step)=>{const other=names[position+step];if(!other)return;const reordered=[...names];[reordered[position],reordered[position+step]]=[reordered[position+step],reordered[position]];currentList().headings=reordered;storeLists();draw()};
  const up=button('↑',()=>move(-1),'v156-move');up.disabled=position===0;up.setAttribute('aria-label','Flyt '+cat+' op');
  const down=button('↓',()=>move(1),'v156-move');down.disabled=position===names.length-1;down.setAttribute('aria-label','Flyt '+cat+' ned');
- order.append(up,down);header.append(h,order,plus);section.append(header);
+ order.append(up,down);header.append(h,order,plus);
+ // Swipe the heading left to expose deletion without affecting its items' swipe actions.
+ const headingShell=el('div','v169-heading-shell');
+ const headingTrash=button('🗑',()=>{
+   if(!confirm('Slet overskriften '+cat+' og alle varerne under den fra '+currentList().name+'? Standardlisterne bliver ikke ændret.'))return;
+   items=items.filter(x=>catOf(x)!==cat);
+   currentList().headings=localHeadings().filter(x=>x!==cat);
+   persist();
+ },'v169-heading-trash');
+ headingTrash.setAttribute('aria-label','Slet overskriften '+cat);
+ headingShell.append(headingTrash,header);section.append(headingShell);
+ let hx=0,hy=0;
+ header.addEventListener('touchstart',e=>{hx=e.touches[0].clientX;hy=e.touches[0].clientY},{passive:true});
+ header.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-hx,dy=e.changedTouches[0].clientY-hy;if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)*1.3){headingShell.classList.toggle('v169-heading-reveal',dx<0)}},{passive:true});
  for(const item of items.filter(x=>catOf(x)===cat)){
  const shell=el('div','v160-swipe-shell');const row=el('div','simple-item v160-swipe-row');
  const check=button(item.done?'✓':'',()=>{item.done=!item.done;persist()},'v161-check');check.setAttribute('aria-label',(item.done?'Fjern flueben ved ':'Marker fundet: ')+item.title);check.setAttribute('aria-pressed',String(!!item.done));
@@ -3738,5 +3751,11 @@ body.list-open[data-page="shopping"] #listBack{display:none!important}
 #shoppingPage .v153-btn,#shoppingPage .v153-btn.primary,#shoppingPage .v153-add button,#shoppingPage .v155-heading-plus,#shoppingPage .v156-move,#shoppingPage .v155-save,#shoppingPage .v154-remove{background:#f0e0de;border-color:#d8bcb8;color:#654b42}
 #shoppingPage .v153-template-row input,#shoppingPage input[type=checkbox]{accent-color:#c99d9e}
 #shoppingPage .v153-dialog input:focus{outline:2px solid #c99d9e;outline-offset:1px}
+</style><style id="v169-heading-swipes">
+#shoppingPage .v169-heading-shell{position:relative;overflow:hidden;border-radius:12px}
+#shoppingPage .v169-heading-shell .v155-group-header{position:relative;z-index:1;background:#faf7f0;transition:transform .2s ease;touch-action:pan-y}
+#shoppingPage .v169-heading-shell.v169-heading-reveal .v155-group-header{transform:translateX(-70px)}
+#shoppingPage .v169-heading-trash{position:absolute;right:0;top:0;bottom:5px;width:66px;border:0;border-radius:10px;background:#e8cecb;color:#654b42;font-size:22px}
+#shoppingPage .v154-on-list{color:#654b42!important}
 </style>
 </body></html>
